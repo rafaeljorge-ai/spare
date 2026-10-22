@@ -8,13 +8,17 @@ extension SpareEnvironment {
         home: URL,
         projectRoots: [URL] = [],
         disk: DiskSpace? = DiskSpace(freeBytes: 10_000_000_000, totalBytes: 100_000_000_000),
-        processes: [RunningProcess] = []
+        processes: [RunningProcess] = [],
+        processListingFails: Bool = false
     ) -> SpareEnvironment {
         SpareEnvironment(
             home: home,
             projectRoots: projectRoots,
             diskSpace: { _ in disk },
-            processes: { processes }
+            processes: {
+                if processListingFails { throw ProcessListingError(message: "test") }
+                return processes
+            }
         )
     }
 }

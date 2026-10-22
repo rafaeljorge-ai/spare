@@ -159,4 +159,19 @@ import SpareTestSupport
         #expect(byName["def"] == .some(nil))
         #expect(report.reviewBytes < 20_000)
     }
+
+    @Test func unknownWhenTheProcessListingFails() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try home.file(".npm/_npx/abc/node_modules/mcp/index.js", bytes: 10_000)
+        try home.file(".npm/_cacache/index/a", bytes: 10_000)
+
+        let env = SpareEnvironment.test(home: home.url, processListingFails: true)
+        let report = await Scanner(environment: env).scan(categories: [.devCaches])
+        let byName = Dictionary(uniqueKeysWithValues: report.items.map { ($0.url.lastPathComponent, $0.inUseBy) })
+
+        #expect(byName["abc"] == .some(InUseGuard.unknownReason))
+        #expect(byName["_cacache"] == .some(nil))  // official command rule: the tool handles its locks
+        #expect(report.reviewBytes == 0)
+    }
 }

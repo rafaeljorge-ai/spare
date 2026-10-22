@@ -100,4 +100,45 @@ import Testing
 
         #expect(guardian.reason(rule: catalog.rule(id: "dev.uv")!, url: URL(fileURLWithPath: "/Users/x/.cache/uv")) == nil)
     }
+
+    @Test func npxServerLaunchedByNameIsInUse() {
+        // ps reports `node` (not an absolute path) for processes started through PATH.
+        let listed = ProcessLister.parse(
+            comm: "  400   501   2048 node\n",
+            args: "  400   node /Users/x/.npm/_npx/abc123/node_modules/.bin/x\n")
+        let guardian = InUseGuard(processes: listed)
+        let rule = catalog.rule(id: "dev.npx")!
+
+        #expect(guardian.reason(rule: rule, url: URL(fileURLWithPath: "/Users/x/.npm/_npx/abc123")) == "node")
+        #expect(guardian.reason(rule: rule, url: URL(fileURLWithPath: "/Users/x/.npm/_npx/abc124")) == nil)
+    }
+
+    @Test func cargoLaunchedByNameBlocksItsCache() {
+        let guardian = InUseGuard(processes: ProcessLister.parse(
+            comm: "  401   501   1024 cargo\n", args: "  401   cargo build\n"))
+
+        #expect(guardian.reason(rule: catalog.rule(id: "dev.cargo")!, url: URL(fileURLWithPath: "/Users/x/.cargo/registry/cache")) == "cargo")
+    }
+
+    @Test func yarnBehindInterpreterFlagsIsFound() {
+        let guardian = InUseGuard(processes: [process("node", path: "/opt/homebrew/bin/node",
+                                                       args: "node --no-warnings /opt/homebrew/bin/yarn install")])
+
+        #expect(guardian.reason(rule: catalog.rule(id: "dev.yarn")!, url: URL(fileURLWithPath: "/Users/x/Library/Caches/Yarn")) == "node")
+    }
+
+    @Test func viteRunFromNodeModulesBinBlocksTheProject() {
+        let guardian = InUseGuard(processes: ProcessLister.parse(
+            comm: "  500   501   4096 node\n",
+            args: "  500   node /Users/x/Projetos/app/node_modules/.bin/vite\n"))
+
+        #expect(guardian.reason(rule: catalog.rule(id: "project.nodeModules")!, url: URL(fileURLWithPath: "/Users/x/Projetos/app/node_modules")) == "node")
+    }
+
+    @Test func unverifiedRulesAreTheOnesThatNeedAProcessCheck() {
+        #expect(InUseGuard.needsCheck(catalog.rule(id: "dev.npx")!))
+        #expect(InUseGuard.needsCheck(catalog.rule(id: "dev.yarn")!))
+        #expect(!InUseGuard.needsCheck(catalog.rule(id: "dev.uv")!))  // official command
+        #expect(!InUseGuard.needsCheck(catalog.rule(id: "dev.npm")!))
+    }
 }

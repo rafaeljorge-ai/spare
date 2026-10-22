@@ -5,6 +5,7 @@ All notable changes to this project are documented here. Format: Keep a Changelo
 ## [Unreleased]
 
 ### Fixed
+- In-use detection no longer skips processes started through PATH (`node`, `cargo`, `npm`): their real path comes from `proc_pidpath`. Process listing has a 5 s timeout (`lsof -b -w`), a failed `ps` marks items that need the check as `unknown` instead of free, and `scriptName` skips interpreter flags.
 - Project leftovers idleness: measured at the whole repository root (a `.git` directory or file above the artifact, inside the project root), so a monorepo package is idle only if the entire repo is. Creation dates and the artifact folder's own modification date also count as activity, covering unzipped or restored projects followed by an install.
 - Safety guard hardening: user files refuse folders that contain protected or critical ones (`~/Library`, `~/Documents`, `~/Desktop`); `children` rules now enforce extensions and minimum age; project artifacts require their manifest and never enter `.git`; generic rules refuse paths owned by specific rules; hard links are tracked by device and inode.
 

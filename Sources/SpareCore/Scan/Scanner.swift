@@ -29,7 +29,8 @@ public struct Scanner: Sendable {
             }
         }
 
-        let inUse = InUseGuard(processes: environment.processes())
+        // A failed listing is not "nothing running": items that need the check become "unknown", never free.
+        let inUse = try? InUseGuard(processes: environment.processes())
         var pendingPerCategory = Dictionary(grouping: candidates, by: { $0.0.category }).mapValues(\.count)
         var items: [ScanItem] = []
         var completed = 0
@@ -47,7 +48,11 @@ public struct Scanner: Sendable {
                 var item = measured
                 if var found = item {
                     if let rule = catalog.rule(id: found.ruleID) {
-                        found.inUseBy = inUse.reason(rule: rule, url: found.url)
+                        if let inUse {
+                            found.inUseBy = inUse.reason(rule: rule, url: found.url)
+                        } else if InUseGuard.needsCheck(rule) {
+                            found.inUseBy = InUseGuard.unknownReason
+                        }
                     }
                     item = found
                     items.append(found)

@@ -7,7 +7,8 @@ public struct SpareEnvironment: Sendable {
     public var projectIdleDays: Int
     public var now: @Sendable () -> Date
     public var diskSpace: @Sendable (URL) -> DiskSpace?
-    public var processes: @Sendable () -> [RunningProcess]
+    /// Throws when the running processes could not be listed.
+    public var processes: @Sendable () throws -> [RunningProcess]
 
     public init(
         home: URL,
@@ -15,7 +16,7 @@ public struct SpareEnvironment: Sendable {
         projectIdleDays: Int = 30,
         now: @escaping @Sendable () -> Date = { Date() },
         diskSpace: @escaping @Sendable (URL) -> DiskSpace? = { DiskMonitor.space(at: $0) },
-        processes: @escaping @Sendable () -> [RunningProcess] = { [] }
+        processes: @escaping @Sendable () throws -> [RunningProcess] = { [] }
     ) {
         self.home = home
         self.projectRoots = projectRoots
@@ -29,6 +30,6 @@ public struct SpareEnvironment: Sendable {
     public static func live(home: URL) -> SpareEnvironment {
         let resolved = home.resolvingSymlinksInPath()
         return SpareEnvironment(home: resolved, projectRoots: ProjectScanner.defaultRoots(home: resolved),
-                          processes: { ProcessLister.live() })
+                          processes: { try ProcessLister.live() })
     }
 }

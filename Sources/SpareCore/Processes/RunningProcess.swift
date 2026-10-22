@@ -30,8 +30,9 @@ public struct RunningProcess: Codable, Sendable, Hashable {
     /// Name of the script for interpreter-run tools: `node /x/bin/npm install` -> "npm".
     public var scriptName: String? {
         let tokens = commandLine.split(separator: " ", omittingEmptySubsequences: true)
-        guard tokens.count > 1 else { return nil }
-        return (String(tokens[1]) as NSString).lastPathComponent
+        // Skip the interpreter and its flags: `node --no-warnings /x/bin/yarn` -> "yarn".
+        guard let script = tokens.dropFirst().first(where: { !$0.hasPrefix("-") }) else { return nil }
+        return (String(script) as NSString).lastPathComponent
     }
 
     public var executableName: String {

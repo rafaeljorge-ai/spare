@@ -7,6 +7,15 @@ public struct InUseGuard: Sendable {
         self.processes = processes
     }
 
+    /// `ScanItem.inUseBy` value when the process list could not be read: never shown as free to clean.
+    public static let unknownReason = "unknown"
+
+    /// Whether the rule depends on knowing the running processes (official-command rules do not).
+    public static func needsCheck(_ rule: Rule) -> Bool {
+        if case .command = rule.action { return false }
+        return rule.inUse != .none
+    }
+
     /// Display name of what is using the item, or nil when it is free to clean.
     public func reason(rule: Rule, url: URL) -> String? {
         if case .command = rule.action { return nil }  // the tool handles its own locks
