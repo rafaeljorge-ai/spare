@@ -38,8 +38,13 @@ English literals are the localization keys. Every UI literal in `Sources/SpareAp
 Read once at launch, for QA on a throwaway home (never set them for normal use):
 
 - `SPARE_HOME=<folder>` points the app and the CLI at a fake home. Without `SPARE_TRASH_DIR`, the app uses `<folder>/.Trash` as its Trash.
-- `SPARE_TRASH_DIR=<folder>` replaces the real Trash with a plain folder.
+- `SPARE_TRASH_DIR=<folder>` replaces the real Trash with a plain folder. This holds for the CLI too: with `SPARE_HOME` alone, the CLI also uses `<folder>/.Trash`.
+- While `SPARE_HOME` is set, tool commands (`npm cache clean`, `pnpm store prune`, `uv cache clean`) are off and those items are skipped with a reason; tools that do run get `HOME` set to the fake home. `SPARE_ALLOW_TOOL_COMMANDS=1` turns them back on (only for a test of the command path itself).
 - `--show <section>` opens the window on a section; `--snapshot <dir>` (needs `SPARE_HOME`) saves the key states as PNG (`scripts/snapshot.sh`).
+
+## Building the release
+
+`scripts/build-dmg.sh` builds `dist/Spare-<VERSION>.dmg` and its `.sha256` (the version comes from the `VERSION` file). `scripts/build-app.sh` generates the app icon (`scripts/make-icon.sh`, drawn with CoreGraphics into `Packaging/AppIcon.icns`, not versioned) and ad-hoc signs the app. `scripts/qa-fake-home.sh` and `scripts/snapshot.sh [dir] [pt-BR|en]` run the QA on a throwaway home. Tags and GitHub Releases are created by the maintainer after the release PR is merged.
 
 ## Adding a cleanup rule
 

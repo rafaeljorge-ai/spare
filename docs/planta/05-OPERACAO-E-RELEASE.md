@@ -15,7 +15,7 @@ Este projeto é um app de desktop: não há Docker, Coolify nem servidor. A "ope
 | Testar | `swift test` |
 | Gate completo local | `scripts/check.sh` |
 | Montar o app | `scripts/build-app.sh` → `dist/Spare.app` |
-| Gerar o instalador | `scripts/make-dmg.sh` → `dist/Spare-<versão>.dmg` |
+| Gerar o instalador | `scripts/build-dmg.sh` → `dist/Spare-<versão>.dmg` |
 | Rodar a CLI | `swift run spare status` |
 
 ## `build-app.sh`
@@ -25,7 +25,7 @@ Este projeto é um app de desktop: não há Docker, Coolify nem servidor. A "ope
 3. `Info.plist`: `CFBundleIdentifier=ai.rafaeljorge.spare`, `LSUIElement=true` (sem ícone no Dock), `LSMinimumSystemVersion=14.0`, versão vinda de `VERSION`.
 4. `codesign --force --deep --sign - dist/Spare.app` e `codesign --verify`.
 
-## `make-dmg.sh`
+## `build-dmg.sh`
 
 `hdiutil create -volname Spare -srcfolder <staging com Spare.app e atalho para /Applications> -ov -format UDZO dist/Spare-<versão>.dmg`, depois `shasum -a 256` gravado ao lado.
 

@@ -50,8 +50,10 @@ public struct SpareEnvironment: Sendable {
     /// Real environment for the CLI and the app.
     public static func live(home: URL) -> SpareEnvironment {
         let resolved = home.resolvingSymlinksInPath()
+        let runner = SystemCommandRunner(
+            home: resolved, disabled: SystemCommandRunner.toolCommandsDisabled(ProcessInfo.processInfo.environment))
         return SpareEnvironment(home: resolved, projectRoots: ProjectScanner.defaultRoots(home: resolved),
-                          processes: { try ProcessLister.live() })
+                          processes: { try ProcessLister.live() }, commandRunner: runner)
     }
 
     /// Real environment honoring the user's settings (project folders and idle days).

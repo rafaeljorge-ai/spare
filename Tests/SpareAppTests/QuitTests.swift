@@ -46,26 +46,26 @@ import SpareCore
     }
 
     @Test func showsOnlyTheExecutableAndTheFirstArgument() {
-        let command = "/opt/homebrew/bin/node server.js --port 3000 --api-key=abc123 --token zzz"
+        let command = "/opt/homebrew/bin/node server.js --port 3000 --api-key=EXAMPLE_NOT_A_SECRET --token EXAMPLE_NOT_A_TOKEN"
         #expect(QuitPrompt.display(command) == "/opt/homebrew/bin/node server.js")
         #expect(QuitPrompt.display("node --inspect app.js --flag") == "node app.js")
         #expect(QuitPrompt.display("tool") == "tool")
         // A masked value is never the "first argument".
-        #expect(QuitPrompt.display("cli --token abc") == "cli")
-        #expect(!QuitPrompt.display("cli -secret abc run").contains("abc"))
+        #expect(QuitPrompt.display("cli --token EXAMPLE_NOT_A_TOKEN") == "cli")
+        #expect(!QuitPrompt.display("cli -secret EXAMPLE_NOT_A_SECRET run").contains("EXAMPLE_NOT_A_SECRET"))
     }
 
     @Test func aSecretInTheFirstArgumentIsMasked() {
         #expect(QuitPrompt.display("psql postgres://user:hunter2@db.local/app") == "psql postgres://***@db.local/app")
         let prompt = QuitPrompt.make(
             consumer: consumer([30, 31]),
-            processes: [30: process(30, command: "node worker.js --token abc"), 31: process(31, command: "node --x")])
-        #expect(prompt.lines.allSatisfy { !$0.command.contains("abc") })
+            processes: [30: process(30, command: "node worker.js --token EXAMPLE_NOT_A_TOKEN"), 31: process(31, command: "node --x")])
+        #expect(prompt.lines.allSatisfy { !$0.command.contains("EXAMPLE_NOT_A_TOKEN") })
     }
 
     @Test func redactMasksKeyValueFlagsAndCredentialUrls() {
-        #expect(QuitPrompt.redact("run --api-key=abc") == "run --api-key=***")
-        #expect(QuitPrompt.redact("run --token abc --port 80") == "run --token *** --port 80")
+        #expect(QuitPrompt.redact("run --api-key=EXAMPLE_NOT_A_SECRET") == "run --api-key=***")
+        #expect(QuitPrompt.redact("run --token EXAMPLE_NOT_A_TOKEN --port 80") == "run --token *** --port 80")
         #expect(QuitPrompt.redact("run -p abc") == "run -p abc")
         #expect(QuitPrompt.redact("run -secret abc") == "run -secret ***")
         #expect(QuitPrompt.redact("run --PASSWORD=x --client-cred y") == "run --PASSWORD=*** --client-cred ***")

@@ -85,3 +85,52 @@ import SpareTestSupport
         #expect(SystemCommandRunner.lastAbsolutePath(in: "") == nil)
     }
 }
+
+@Suite struct TestHomeIsolationTests {
+    @Test func toolsRunWithTheEnvironmentHome() throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let tool = try home.file("bin/show-home", bytes: 0)
+        try "#!/bin/sh\necho \"HOME=$HOME\"\n".write(to: tool, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tool.path)
+        let runner = SystemCommandRunner(home: home.url, searchPaths: [home.path("bin").path], fallbackLookup: { _ in nil })
+
+        let result = try runner.run("show-home", [])
+
+        #expect(result.output.contains("HOME=\(home.url.path)"))
+    }
+
+    @Test func aDisabledRunnerRefusesEveryTool() throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let runner = SystemCommandRunner(home: home.url, searchPaths: ["/usr/bin", "/bin"], disabled: true, fallbackLookup: { _ in nil })
+
+        #expect(throws: CommandError.disabled("true")) { try runner.run("true", []) }
+    }
+
+    @Test func spareHomeTurnsToolCommandsOffUnlessAllowed() {
+        #expect(SystemCommandRunner.toolCommandsDisabled(["SPARE_HOME": "/tmp/x"]))
+        #expect(!SystemCommandRunner.toolCommandsDisabled([:]))
+        #expect(!SystemCommandRunner.toolCommandsDisabled(["SPARE_HOME": "/tmp/x", "SPARE_ALLOW_TOOL_COMMANDS": "1"]))
+    }
+
+    @Test func aDisabledCommandItemIsSkippedWithAReason() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let cache = try home.directory(".npm/_cacache")
+        let runner = SystemCommandRunner(home: home.url, searchPaths: ["/usr/bin", "/bin"], disabled: true, fallbackLookup: { _ in nil })
+        let item = ScanItem(ruleID: "dev.npm", category: .devCaches, url: cache, sizeBytes: 1_000, safety: .safe)
+
+        let record = await Cleaner(environment: .test(home: home.url, commandRunner: runner)).clean([item])
+
+        #expect(record.entries.first?.status == .skipped)
+        #expect(record.entries.first?.skipReason == .toolsDisabled)
+    }
+
+    @Test func aFakeHomeAloneUsesItsOwnTrashFolder() {
+        let home = URL(fileURLWithPath: "/tmp/fake", isDirectory: true)
+        #expect(TrashFolder.override(variables: ["SPARE_HOME": "/tmp/fake"], home: home)?.path == "/tmp/fake/.Trash")
+        #expect(TrashFolder.override(variables: ["SPARE_HOME": "/tmp/fake", "SPARE_TRASH_DIR": "/tmp/t"], home: home)?.path == "/tmp/t")
+        #expect(TrashFolder.override(variables: [:], home: home) == nil)
+    }
+}

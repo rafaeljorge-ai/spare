@@ -19,7 +19,9 @@ Anything that cannot be regenerated goes to the Trash with its location recorded
 5. Project folders are listed only when idle and with their manifest file.
 6. Delete only what regenerates; the rest goes to the Trash or uses the tool's official cleanup command.
 7. Emptying the Trash requires explicit confirmation.
-8. Quitting a process: only the current user's processes, never PID 1, system processes or Spare itself, and never `SIGKILL`.
+8. A project folder inside a protected place (for example `~/Documents`) is never listed or cleaned, even when you configure it as a project folder.
+9. A throwaway home (`SPARE_HOME`) never reaches your real Trash or your real tool caches.
+10. Quitting a process: only the current user's processes, never PID 1, system processes or Spare itself, and never `SIGKILL`.
 
 ## Reporting a vulnerability
 

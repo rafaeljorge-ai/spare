@@ -3,11 +3,13 @@
 # app draws its own windows to PNG (`--snapshot`). Never touches the real home: SPARE_HOME points at a fake
 # one, and the app refuses to run `--snapshot` without it.
 #
-# Usage: scripts/snapshot.sh [output-dir]   (default: docs/img)
+# Usage: scripts/snapshot.sh [output-dir] [language]   (defaults: docs/img, pt-BR; the other one is en)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 OUT="${1:-docs/img}"
+LANGUAGE="${2:-pt-BR}"
+LOCALE="${LANGUAGE//-/_}"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
 
@@ -72,7 +74,7 @@ rm "$BASE" "$BIG"
 find "$FAKE_HOME/Projetos" "$FAKE_HOME/Downloads" -exec touch -t "$(date -v-60d +%Y%m%d%H%M)" {} +
 
 echo "==> snapshot to $OUT"
-SPARE_HOME="$FAKE_HOME" "$APP" -AppleLanguages "(pt-BR)" -AppleLocale pt_BR --snapshot "$OUT" &
+SPARE_HOME="$FAKE_HOME" "$APP" -AppleLanguages "($LANGUAGE)" -AppleLocale "$LOCALE" --snapshot "$OUT" &
 APP_PID=$!
 for _ in $(seq 1 90); do
     kill -0 "$APP_PID" 2> /dev/null || break
