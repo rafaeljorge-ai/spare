@@ -188,7 +188,7 @@ final class AppModel: ObservableObject {
     }
 
     func startScan() {
-        guard !isScanning, !isCleaning else { return }
+        guard !isScanning, !isCleaning, pendingPlan == nil else { return }
         finishedCategories = []
         lastProgressUpdate = .distantPast
         scanState = .scanning(nil)

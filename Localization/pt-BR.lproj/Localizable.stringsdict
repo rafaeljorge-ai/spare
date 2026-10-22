@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%lld categories with nothing to clean</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld categoria sem nada para limpar</string>
+			<key>other</key>
+			<string>%lld categorias sem nada para limpar</string>
+		</dict>
+	</dict>
+	<key>%lld in use or not verified, left alone</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld em uso ou não verificado, deixado em paz</string>
+			<key>other</key>
+			<string>%lld em uso ou não verificados, deixados em paz</string>
+		</dict>
+	</dict>
+	<key>%lld items</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld item</string>
+			<key>other</key>
+			<string>%lld itens</string>
+		</dict>
+	</dict>
+	<key>%lld items (%@) go to the Trash and can be undone.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld item (%2$@) vai para a Lixeira e pode ser desfeito.</string>
+			<key>other</key>
+			<string>%lld itens (%2$@) vão para a Lixeira e podem ser desfeitos.</string>
+		</dict>
+	</dict>
+	<key>%lld items, %@ in the Trash</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@, %@ na Lixeira</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld item</string>
+			<key>other</key>
+			<string>%lld itens</string>
+		</dict>
+	</dict>
+	<key>%lld skipped, %lld failed</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@a@, %#@b@</string>
+		<key>a</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld pulado</string>
+			<key>other</key>
+			<string>%lld pulados</string>
+		</dict>
+		<key>b</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld com falha</string>
+			<key>other</key>
+			<string>%lld com falha</string>
+		</dict>
+	</dict>
+	<key>Clean %lld items (%@)?</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Limpar %#@n@ (%@)?</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld item</string>
+			<key>other</key>
+			<string>%lld itens</string>
+		</dict>
+	</dict>
+	<key>Cleaned %@ in %lld items</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Liberado: %@ em %#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld item</string>
+			<key>other</key>
+			<string>%lld itens</string>
+		</dict>
+	</dict>
+	<key>Freed %@ from %lld items.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%@ liberados de %#@n@.</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld item</string>
+			<key>other</key>
+			<string>%lld itens</string>
+		</dict>
+	</dict>
+	<key>Freed %@ from %lld items. %lld stayed in the Trash.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%@ liberados de %#@n@. %#@s@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld item</string>
+			<key>other</key>
+			<string>%lld itens</string>
+		</dict>
+		<key>s</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld ficou na Lixeira.</string>
+			<key>other</key>
+			<string>%lld ficaram na Lixeira.</string>
+		</dict>
+	</dict>
+	<key>Restored %lld items.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld item restaurado.</string>
+			<key>other</key>
+			<string>%lld itens restaurados.</string>
+		</dict>
+	</dict>
+	<key>Restored %lld items. %lld stayed in the Trash: the original place is taken or the item changed.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@r@ %#@s@</string>
+		<key>r</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld item restaurado.</string>
+			<key>other</key>
+			<string>%lld itens restaurados.</string>
+		</dict>
+		<key>s</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld ficou na Lixeira: o lugar original está ocupado ou o item mudou.</string>
+			<key>other</key>
+			<string>%lld ficaram na Lixeira: o lugar original está ocupado ou o item mudou.</string>
+		</dict>
+	</dict>
+	<key>Selected: %lld items, %@</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@, %@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Selecionado: %lld item</string>
+			<key>other</key>
+			<string>Selecionados: %lld itens</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

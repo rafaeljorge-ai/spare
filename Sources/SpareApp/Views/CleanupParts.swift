@@ -88,8 +88,8 @@ struct NoticeLine: View {
     var body: some View {
         switch notice {
         case .restored(let restored, let stayed):
-            let count = String(restored)
-            let left = String(stayed)
+            let count = restored
+            let left = stayed
             if stayed == 0 {
                 line("arrow.uturn.backward.circle.fill", Ink.spare, Text("Restored \(count) items."))
             } else {
@@ -98,8 +98,8 @@ struct NoticeLine: View {
             }
         case .freed(let bytes, let purged, let stayed):
             let size = ByteFormat.string(bytes)
-            let count = String(purged)
-            let left = String(stayed)
+            let count = purged
+            let left = stayed
             if stayed == 0 {
                 line("flame.fill", Ink.spare, Text("Freed \(size) from \(count) items."))
             } else {
@@ -108,6 +108,9 @@ struct NoticeLine: View {
             }
         case .failed:
             line("xmark.octagon.fill", Ink.busy, Text("Could not read or write the history."))
+        case .notStarted:
+            line("exclamationmark.triangle.fill", Ink.review,
+                 Text("Another analysis or cleanup was running, so nothing was cleaned. Try again."))
         }
     }
 

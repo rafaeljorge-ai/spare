@@ -50,7 +50,7 @@ struct HistoryView: View {
 
     private func card(_ record: CleanupRecord) -> some View {
         let outcome = CleanOutcome(record)
-        let count = String(outcome.cleanedCount)
+        let count = outcome.cleanedCount
         let waiting = ByteFormat.string(outcome.trashedBytes)
         return Card {
             HStack(spacing: 14) {
@@ -89,7 +89,7 @@ struct HistoryView: View {
         return VStack(spacing: 0) {
             FlowHeader(
                 title: Text(verbatim: record.startedAt.formatted(date: .abbreviated, time: .shortened)),
-                subtitle: Text("Cleaned \(ByteFormat.string(outcome.cleanedBytes)) in \(String(outcome.cleanedCount)) items")
+                subtitle: Text("Cleaned \(ByteFormat.string(outcome.cleanedBytes)) in \(outcome.cleanedCount) items")
             ) {
                 selection.recordID = nil
                 model.notice = nil

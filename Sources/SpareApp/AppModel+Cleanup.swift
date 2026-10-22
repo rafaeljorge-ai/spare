@@ -14,6 +14,8 @@ enum CleanupNotice: Equatable {
     case freed(Int64, purged: Int, stayed: Int)
     /// The history could not be read or written.
     case failed
+    /// A confirmed cleanup did not start because a scan or another cleanup was running. Nothing was touched.
+    case notStarted
 }
 
 extension AppModel {
@@ -81,11 +83,13 @@ extension AppModel {
         guard !isCleaning, !isScanning else { return }
         let ready = items.filter { $0.availability.isSelectable }
         guard !ready.isEmpty else { return }
+        notice = nil
         pendingPlan = CleanPlan(items: ready)
     }
 
     func requestCleanSafe() {
-        guard let report = lastReport else { return }
+        // Never leave a running cleanup's progress (and its Stop button): bail out before changing the route.
+        guard !isCleaning, let report = lastReport else { return }
         selection = .cleanup
         cleanupRoute = .cards
         requestClean(report.items.filter { $0.safety == .safe })
@@ -100,7 +104,11 @@ extension AppModel {
     func confirmClean() {
         guard let plan = pendingPlan else { return }
         pendingPlan = nil
-        guard !isCleaning, !isScanning else { return }
+        guard !isCleaning, !isScanning else {
+            // The confirmation was dropped: say so instead of doing nothing.
+            notice = .notStarted
+            return
+        }
         cleanQueue = plan.executionOrder
         cleanEntries = []
         isStopping = false
@@ -136,6 +144,24 @@ extension AppModel {
         await cleanTask?.value
     }
 
+    /// Quitting during a cleanup: stop after the item in progress and wait until the record is saved.
+    func finishCleanBeforeQuit() async {
+        guard isCleaning else { return }
+        stopClean()
+        await waitForClean()
+    }
+
+    /// What each queued item shows. Entries arrive in execution order, so they are matched by path, never by
+    /// position. The first item without an entry is the one in progress (none once Stop was pressed).
+    static func rowStates(queue: [ScanItem], entries: [CleanupEntry], stopping: Bool) -> [(item: ScanItem, state: CleanRowState)] {
+        let finished = Dictionary(entries.map { ($0.originalPath, $0) }, uniquingKeysWith: { first, _ in first })
+        let current = queue.first { finished[$0.url.path] == nil }
+        return queue.map { item in
+            if let entry = finished[item.url.path] { return (item, .finished(entry)) }
+            return (item, item.id == current?.id && !stopping ? .working : .waiting)
+        }
+    }
+
     private func finishClean(_ record: CleanupRecord) {
         cleanWorker = nil
         cleanTask = nil
@@ -148,7 +174,8 @@ extension AppModel {
         }
         reloadHistory()
         let cleaned = Set(record.entries.filter { $0.status == .done }.map(\.originalPath))
-        applyCleanup(removing: cleaned, latest: history.first)
+        // The record just made, saved or not: never an older one (the result screen warns when it is unsaved).
+        applyCleanup(removing: cleaned, latest: record)
         cleanupRoute = .result(record.id)
     }
 

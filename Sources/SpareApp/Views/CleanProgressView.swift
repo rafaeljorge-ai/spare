@@ -6,9 +6,9 @@ struct CleanProgressView: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
-        let finished = Dictionary(model.cleanEntries.map { ($0.originalPath, $0) }, uniquingKeysWith: { first, _ in first })
-        let current = model.cleanQueue.first { finished[$0.url.path] == nil }
-        let done = String(finished.count)
+        let rows = AppModel.rowStates(queue: model.cleanQueue, entries: model.cleanEntries, stopping: model.isStopping)
+        let finishedCount = rows.filter { if case .finished = $0.state { true } else { false } }.count
+        let done = String(finishedCount)
         let total = String(model.cleanQueue.count)
         return VStack(spacing: 0) {
             FlowHeader(
@@ -16,15 +16,14 @@ struct CleanProgressView: View {
                 subtitle: Text("Spare checks each item again right before touching it."))
             VStack(spacing: 14) {
                 HStack {
-                    bar(fraction: Double(finished.count) / Double(max(model.cleanQueue.count, 1)))
+                    bar(fraction: Double(finishedCount) / Double(max(model.cleanQueue.count, 1)))
                     Text("\(done) of \(total)").font(Txt.caption).foregroundStyle(Ink.tertiary).monospacedDigit()
                 }
                 ScrollView {
                     RowsCard {
-                        ForEach(model.cleanQueue) { item in
-                            CleanRow(name: ItemName.of(item), sizeBytes: item.sizeBytes,
-                                     state: state(of: item, finished: finished, current: current))
-                            if item.id != model.cleanQueue.last?.id { RowDivider() }
+                        ForEach(rows, id: \.item.id) { row in
+                            CleanRow(name: ItemName.of(row.item), sizeBytes: row.item.sizeBytes, state: row.state)
+                            if row.item.id != rows.last?.item.id { RowDivider() }
                         }
                     }
                 }
@@ -38,11 +37,6 @@ struct CleanProgressView: View {
                 Button("Stop") { model.stopClean() }.buttonStyle(QuietButton()).disabled(model.isStopping)
             }
         }
-    }
-
-    private func state(of item: ScanItem, finished: [String: CleanupEntry], current: ScanItem?) -> CleanRowState {
-        if let entry = finished[item.url.path] { return .finished(entry) }
-        return item.id == current?.id && !model.isStopping ? .working : .waiting
     }
 
     private func bar(fraction: Double) -> some View {

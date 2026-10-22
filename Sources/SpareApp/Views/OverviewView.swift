@@ -119,7 +119,7 @@ struct OverviewView: View {
                     Button("Review all") { model.show(.cleanup) }.buttonStyle(QuietButton())
                     Button("Clean what's safe") { model.requestCleanSafe() }
                         .buttonStyle(PrimaryButton())
-                        .disabled(report.safeReclaimableBytes == 0)
+                        .disabled(report.safeReclaimableBytes == 0 || model.isCleaning)
                 }
             }
         }

@@ -19,9 +19,9 @@ struct ConfirmCleanContent: View {
     let onConfirm: () -> Void
 
     var body: some View {
-        let count = String(plan.items.count)
+        let count = plan.items.count
         let total = ByteFormat.string(plan.totalBytes)
-        let trashed = String(plan.trashCount)
+        let trashed = plan.trashCount
         let trashedSize = ByteFormat.string(plan.trashBytes)
         VStack(alignment: .leading, spacing: 16) {
             Text("Clean \(count) items (\(total))?").font(Txt.h2)

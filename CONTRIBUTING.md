@@ -31,7 +31,7 @@ Conventional Commits in English, imperative, subject up to 50 characters, no tra
 
 ## Localization
 
-English literals are the localization keys. Every UI literal in `Sources/SpareApp` needs a `pt-BR` translation in `Localization/pt-BR.lproj/Localizable.strings`; `scripts/check-strings.py` enforces it. Interpolate only `String` values inside localized literals (format numbers and sizes first), so every placeholder is `%@`. Use `Text(verbatim:)` for text that must not be translated (paths, names). Inside a localized literal, keep interpolations simple: at most one level of nested parentheses and no string literals; compute the value into a local `let` first.
+English literals are the localization keys. Every UI literal in `Sources/SpareApp` needs a `pt-BR` translation in `Localization/pt-BR.lproj/Localizable.strings`; `scripts/check-strings.py` enforces it. Interpolate only `String` values inside localized literals (format sizes first), so every placeholder is `%@`; counts of items are the exception: interpolate the `Int` and add the plural forms to `Localizable.stringsdict` (`en` and `pt-BR`, key with `%lld`). Use `Text(verbatim:)` for text that must not be translated (paths, names). Inside a localized literal, keep interpolations simple: at most one level of nested parentheses and no string literals; compute the value into a local `let` first.
 
 ## Developer options
 

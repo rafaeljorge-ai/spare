@@ -27,7 +27,7 @@ struct ReviewView: View {
     private var list: some View {
         let selected = model.selectedItems(in: category)
         let size = ByteFormat.string(selected.reduce(0) { $0 + $1.sizeBytes })
-        let count = String(selected.count)
+        let count = selected.count
         let readyCount = items.filter { $0.availability.isSelectable }.count
         let allOn = selected.count == readyCount
         return VStack(spacing: 0) {

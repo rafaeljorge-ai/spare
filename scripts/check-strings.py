@@ -35,9 +35,21 @@ def translations():
     return json.loads(result.stdout)
 
 
+def plural_keys():
+    """Keys translated through Localizable.stringsdict (counts use %lld there, %@ in the source)."""
+    path = ROOT / "Localization/pt-BR.lproj/Localizable.stringsdict"
+    if not path.exists():
+        return set()
+    result = subprocess.run(
+        ["plutil", "-convert", "json", "-o", "-", str(path)],
+        check=True, capture_output=True, text=True,
+    )
+    return {key.replace("%lld", "%@") for key in json.loads(result.stdout)}
+
+
 def main():
     keys = source_keys()
-    missing = sorted(keys - set(translations()))
+    missing = sorted(keys - set(translations()) - plural_keys())
     if missing:
         print("Missing pt-BR translations:")
         for key in missing:

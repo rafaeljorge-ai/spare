@@ -25,10 +25,10 @@ struct CleanResultView: View {
                 .font(.system(size: 44)).foregroundStyle(record.cancelled ? Ink.review : Ink.spare)
             (record.cancelled ? Text("Cleanup stopped") : Text("Cleanup complete")).font(Txt.h1)
             beforeAfter(record)
-            Text("Cleaned \(ByteFormat.string(outcome.cleanedBytes)) in \(String(outcome.cleanedCount)) items")
+            Text("Cleaned \(ByteFormat.string(outcome.cleanedBytes)) in \(outcome.cleanedCount) items")
                 .font(Txt.body).foregroundStyle(Ink.secondary).monospacedDigit()
             if outcome.skippedCount + outcome.failedCount > 0 {
-                Label("\(String(outcome.skippedCount)) skipped, \(String(outcome.failedCount)) failed", systemImage: "exclamationmark.triangle.fill")
+                Label("\(outcome.skippedCount) skipped, \(outcome.failedCount) failed", systemImage: "exclamationmark.triangle.fill")
                     .font(Txt.caption).foregroundStyle(outcome.failedCount > 0 ? Ink.busy : Ink.review)
             }
             if !saved {

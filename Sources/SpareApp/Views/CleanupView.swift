@@ -63,6 +63,7 @@ struct CleanupCardsView: View {
             FlowHeader(title: Text("Cleanup"), subtitle: Text("\(safe) safe and \(review) to review"))
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
+                    if model.notice == .notStarted, let notice = model.notice { NoticeLine(notice: notice) }
                     if report.cancelled {
                         Label("Analysis interrupted, partial results", systemImage: "exclamationmark.triangle.fill")
                             .font(Txt.label).foregroundStyle(Ink.review)
@@ -73,7 +74,7 @@ struct CleanupCardsView: View {
                         }
                     }
                     if empty > 0 {
-                        Text("\(String(empty)) categories with nothing to clean")
+                        Text("\(empty) categories with nothing to clean")
                             .font(Txt.caption).foregroundStyle(Ink.tertiary)
                     }
                 }
@@ -119,7 +120,7 @@ struct CategoryCard: View {
                     Text(category.explanation).font(Txt.caption).foregroundStyle(Ink.tertiary)
                         .lineLimit(2, reservesSpace: true)
                     if blocked > 0 {
-                        Label("\(String(blocked)) in use or not verified, left alone", systemImage: "lock.fill")
+                        Label("\(blocked) in use or not verified, left alone", systemImage: "lock.fill")
                             .font(Txt.caption).foregroundStyle(Ink.busy)
                     }
                 }
