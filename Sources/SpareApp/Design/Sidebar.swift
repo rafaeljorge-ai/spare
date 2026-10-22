@@ -35,6 +35,8 @@ struct Sidebar: View {
     private func row(_ section: AppSection) -> some View {
         let active = model.selection == section
         return Button {
+            // Clicking the open Cleanup row goes back to its cards.
+            if section == .cleanup, model.selection == .cleanup { model.resetCleanupRoute() }
             withAnimation(.easeOut(duration: 0.18)) { model.selection = section }
         } label: {
             HStack(spacing: 10) {
@@ -43,6 +45,9 @@ struct Sidebar: View {
                     .font(Txt.label)
                     .foregroundStyle(active ? Ink.primary : Ink.secondary)
                 Spacer()
+                if section == .cleanup, model.cleanupRoute == .progress {
+                    ProgressView().controlSize(.mini).accessibilityLabel(Text("Cleaning..."))
+                }
             }
             .padding(.horizontal, 8)
             .frame(height: 36)

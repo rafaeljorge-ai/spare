@@ -23,7 +23,9 @@ struct MainView: View {
     @ViewBuilder private var content: some View {
         switch model.selection {
         case .overview: OverviewView(model: model)
-        // Tasks 10 and 11 replace the placeholder with the real screens.
+        case .cleanup: CleanupView(model: model)
+        case .history: HistoryView(model: model)
+        // Task 11 replaces the placeholder with the remaining screens.
         default: ComingSoonView(section: model.selection)
         }
     }

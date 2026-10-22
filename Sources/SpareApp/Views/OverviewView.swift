@@ -116,7 +116,10 @@ struct OverviewView: View {
                 leftOut(report)
                 HStack(spacing: 10) {
                     Button("Analyze again") { model.startScan() }.buttonStyle(QuietButton())
-                    Button("Review all") { model.show(.cleanup) }.buttonStyle(PrimaryButton())
+                    Button("Review all") { model.show(.cleanup) }.buttonStyle(QuietButton())
+                    Button("Clean what's safe") { model.requestCleanSafe() }
+                        .buttonStyle(PrimaryButton())
+                        .disabled(report.safeReclaimableBytes == 0 || model.isCleaning)
                 }
             }
         }
