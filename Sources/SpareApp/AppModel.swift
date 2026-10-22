@@ -35,6 +35,22 @@ final class AppModel: ObservableObject {
     @Published private(set) var finishedCategories: Set<CategoryID> = []
     @Published var selection: AppSection = .overview
 
+    // Cleanup flow state (Task 10). The logic lives in `AppModel+Cleanup.swift`.
+    @Published var cleanupRoute: CleanupRoute = .cards
+    @Published var selectedItemIDs: Set<String> = []
+    @Published var pendingPlan: CleanPlan?
+    /// Items of the running cleanup in the order they are cleaned, and the entries reported so far.
+    @Published var cleanQueue: [ScanItem] = []
+    @Published var cleanEntries: [CleanupEntry] = []
+    @Published var isStopping = false
+    @Published var history: [CleanupRecord] = []
+    @Published var historyFailed = false
+    @Published var notice: CleanupNotice?
+    @Published var busyRecord: UUID?
+    var unsavedRecord: CleanupRecord?
+    var cleanWorker: Task<CleanupRecord, Never>?
+    var cleanTask: Task<Void, Never>?
+
     private let makeEnvironment: @Sendable (SpareSettings) -> SpareEnvironment
     private let settingsStore: SettingsStore
     private let reportStore: ScanReportStore
@@ -63,7 +79,7 @@ final class AppModel: ObservableObject {
     ) {
         let resolved = home.resolvingSymlinksInPath()
         self.home = resolved
-        let build = makeEnvironment ?? { SpareEnvironment.live(home: $0, settings: $1) }
+        let build = makeEnvironment ?? { AppModel.liveEnvironment(home: $0, settings: $1) }
         self.makeEnvironment = { build(resolved, $0) }
         let support = SpareEnvironment.live(home: resolved).supportDirectory
         settingsStore = SettingsStore(directory: support)
@@ -91,6 +107,19 @@ final class AppModel: ObservableObject {
             return URL(fileURLWithPath: path, isDirectory: true)
         }
         return FileManager.default.homeDirectoryForCurrentUser
+    }
+
+    /// The real environment. A throwaway home never reaches the real Trash: `SPARE_TRASH_DIR` names the
+    /// folder that stands in for it, and with `SPARE_HOME` alone it is `<home>/.Trash`.
+    nonisolated static func liveEnvironment(home: URL, settings: SpareSettings) -> SpareEnvironment {
+        var environment = SpareEnvironment.live(home: home, settings: settings)
+        let variables = ProcessInfo.processInfo.environment
+        if let folder = variables["SPARE_TRASH_DIR"] {
+            environment.trash = DirectoryTrash(folder: URL(fileURLWithPath: folder, isDirectory: true))
+        } else if variables["SPARE_HOME"] != nil {
+            environment.trash = DirectoryTrash(folder: home.appendingPathComponent(".Trash", isDirectory: true))
+        }
+        return environment
     }
 
     var environment: SpareEnvironment { makeEnvironment(settings) }
@@ -164,7 +193,7 @@ final class AppModel: ObservableObject {
     }
 
     func startScan() {
-        guard !isScanning else { return }
+        guard !isScanning, !isCleaning, pendingPlan == nil else { return }
         finishedCategories = []
         lastProgressUpdate = .distantPast
         scanState = .scanning(nil)
@@ -223,6 +252,20 @@ final class AppModel: ObservableObject {
         if !report.cancelled { return true }
         if report.items.isEmpty { return false }
         return previous == nil || previous?.cancelled == true
+    }
+
+    /// A cleanup (or an undo) changed the disk: cleaned items leave the saved report and the finished scan.
+    func applyCleanup(removing paths: Set<String>, latest: CleanupRecord?) {
+        lastCleanup = latest
+        if !paths.isEmpty {
+            if let report = lastReport {
+                let updated = report.removing(paths: paths)
+                lastReport = updated
+                try? reportStore.save(updated)
+            }
+            if case .finished(let shown) = scanState { scanState = .finished(shown.removing(paths: paths)) }
+        }
+        refreshDisk()
     }
 
     // MARK: Navigation and settings

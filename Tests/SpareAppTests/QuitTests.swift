@@ -50,6 +50,9 @@ import SpareCore
         #expect(QuitPrompt.display(command) == "/opt/homebrew/bin/node server.js")
         #expect(QuitPrompt.display("node --inspect app.js --flag") == "node app.js")
         #expect(QuitPrompt.display("tool") == "tool")
+        // A masked value is never the "first argument".
+        #expect(QuitPrompt.display("cli --token abc") == "cli")
+        #expect(!QuitPrompt.display("cli -secret abc run").contains("abc"))
     }
 
     @Test func aSecretInTheFirstArgumentIsMasked() {

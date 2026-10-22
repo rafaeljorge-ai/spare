@@ -6,7 +6,11 @@ extension AppModel {
     func makeLargeFilesModel() -> LargeFilesModel {
         LargeFilesModel(
             home: home, environment: { [unowned self] in environment },
-            didChangeDisk: { [unowned self] in refreshDisk() })
+            didChangeDisk: { [unowned self] in
+                // The disk numbers and the History (panel, Overview and History screen) move together.
+                refreshDisk()
+                reloadHistory()
+            })
     }
 
     func makeMemoryScreenModel() -> MemoryScreenModel {

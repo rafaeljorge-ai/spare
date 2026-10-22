@@ -37,11 +37,12 @@ struct QuitPrompt: Identifiable, Equatable {
     /// The executable and its first argument that is not a flag (`node server.js`), with secrets masked.
     /// Command lines often carry tokens and passwords, so nothing else is shown.
     static func display(_ commandLine: String) -> String {
-        let tokens = commandLine.split(whereSeparator: \.isWhitespace).map(String.init)
+        // Masked first, so a secret can never be picked as "the first argument" (`cli --token abc` shows `cli`).
+        let tokens = redact(commandLine).split(whereSeparator: \.isWhitespace).map(String.init)
         guard let executable = tokens.first else { return "" }
         var shown = [executable]
-        if let argument = tokens.dropFirst().first(where: { !$0.hasPrefix("-") }) { shown.append(argument) }
-        return shorten(redact(shown.joined(separator: " ")))
+        if let argument = tokens.dropFirst().first(where: { !$0.hasPrefix("-") && $0 != "***" }) { shown.append(argument) }
+        return shorten(shown.joined(separator: " "))
     }
 
     static let secretWords = ["token", "key", "secret", "pass", "auth", "cred"]

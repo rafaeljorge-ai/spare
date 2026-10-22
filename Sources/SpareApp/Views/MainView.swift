@@ -23,23 +23,11 @@ struct MainView: View {
     @ViewBuilder private var content: some View {
         switch model.selection {
         case .overview: OverviewView(model: model)
+        case .cleanup: CleanupView(model: model)
+        case .history: HistoryView(model: model)
         case .largeFiles: LargeFilesView(model: model)
         case .memory: MemoryView(model: model)
         case .settings: SettingsView(model: model)
-        // Tasks 10 and 11 replace the placeholder with the real screens.
-        default: ComingSoonView(section: model.selection)
-        }
-    }
-}
-
-private struct ComingSoonView: View {
-    let section: AppSection
-
-    var body: some View {
-        VStack(spacing: 14) {
-            Tile(symbol: section.symbol, tint: section.tint, side: 44)
-            Text(section.title).font(Txt.h1)
-            Text("Coming in the next update").font(Txt.body).foregroundStyle(Ink.tertiary)
         }
     }
 }
