@@ -1,6 +1,6 @@
 # 03 · Telas, fluxos e rotas: Spare
 
-Direção: funcional antes de estético. Componentes nativos do SwiftUI, cores e fontes do sistema, modo claro e escuro automáticos. Nenhuma ilustração customizada no MVP.
+Direção visual aprovada em 2026-10-22 a partir do protótipo (`Prototype/run.sh`): fundo escuro em degradê azul-noite, o Anel do Spare como elemento central, menu lateral com ícones coloridos, verde-menta para espaço seguro. Inspirado na sensação do CleanMyMac, sem usar logo, ícones, nomes ou ilustrações dele. Tokens e componentes em `.interface-design/system.md`. O app usa sempre o tema escuro.
 
 ## Mapa de rotas
 
