@@ -165,6 +165,18 @@ import SpareTestSupport
         #expect(found.map(\.url.lastPathComponent) == ["data.bin"])
     }
 
+    @Test func otherVolumesAreNotEntered() throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try home.file("Mount/remote.bin", bytes: 300_000)
+        try home.file("Local/ok.bin", bytes: 300_000)
+
+        let found = LargeFileFinder.find(in: home.url, minBytes: 100_000, home: home.url,
+                                         deviceOf: { $0.hasSuffix("/Mount") ? 2 : 1 })
+
+        #expect(found.map(\.url.lastPathComponent) == ["ok.bin"])
+    }
+
     @Test func lastOpenedIsFilledForTheFinalFiles() throws {
         let home = try TempHome()
         defer { home.remove() }

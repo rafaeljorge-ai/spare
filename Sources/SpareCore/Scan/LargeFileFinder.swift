@@ -38,7 +38,7 @@ public struct LargeFileSearch: Sendable {
 
 /// Finds the biggest regular files under a folder. Read-only.
 ///
-/// - Never follows symlinks (files, folders or the root itself).
+/// - Never follows symlinks (files, folders or the root itself) and stays on the root's volume.
 /// - Does not enter system folders, packages (`.app`, `.photoslibrary`...), `.git`, the Trash, dependency
 ///   folders other categories already cover (`node_modules`, `.venv`, `.next`, `target`, `DerivedData`),
 ///   `~/Library` (unless `includeLibrary`) or the places `SafetyGuard.canTrashUserFile` would refuse.
@@ -52,16 +52,18 @@ public enum LargeFileFinder {
     public static func find(
         in root: URL, minBytes: Int64, limit: Int = 20, home: URL? = nil, includeLibrary: Bool = false,
         isPackage: (@Sendable (String) -> Bool)? = nil,
+        deviceOf: (@Sendable (String) -> Int64)? = nil,
         progress: (@Sendable (String) -> Void)? = nil
     ) -> [LargeFile] {
         (try? search(in: root, minBytes: minBytes, limit: limit, home: home, includeLibrary: includeLibrary,
-                     isPackage: isPackage, progress: progress))?.files ?? []
+                     isPackage: isPackage, deviceOf: deviceOf, progress: progress))?.files ?? []
     }
 
     /// - Parameter home: the home whose protected folders are skipped; defaults to the current user's home.
     public static func search(
         in root: URL, minBytes: Int64, limit: Int = 20, home: URL? = nil, includeLibrary: Bool = false,
         isPackage: (@Sendable (String) -> Bool)? = nil,
+        deviceOf: (@Sendable (String) -> Int64)? = nil,
         progress: (@Sendable (String) -> Void)? = nil
     ) throws -> LargeFileSearch {
         guard limit > 0 else { return LargeFileSearch(files: [], partial: false) }
@@ -71,6 +73,7 @@ public enum LargeFileFinder {
         guard (info.st_mode & S_IFMT) == S_IFDIR else { throw LargeFileError.notAFolder(root.path) }
         guard !SafetyGuard.isSystemPath(SafetyGuard.resolved(root)) else { throw LargeFileError.systemFolder(root.path) }
 
+        let rootDevice = deviceOf?(root.path) ?? Int64(info.st_dev)
         let home = home ?? FileManager.default.homeDirectoryForCurrentUser
         let pruned = prunedPaths(home: home, includeLibrary: includeLibrary)
         // `fts` walks with one `lstat` per entry and no Foundation objects: about 10 times faster than
@@ -95,6 +98,13 @@ public enum LargeFileFinder {
             switch Int32(entry.pointee.fts_info) {
             case FTS_D:
                 let path = String(cString: entry.pointee.fts_path)
+                // Another volume mounted inside (network share, disk image, FUSE) is not entered, unless the
+                // root is `/` itself.
+                let device = deviceOf?(path) ?? entry.pointee.fts_statp.map { Int64($0.pointee.st_dev) } ?? rootDevice
+                if root.path != "/" && device != rootDevice {
+                    fts_set(fts, entry, FTS_SKIP)
+                    continue
+                }
                 let name = path.split(separator: "/").last.map(String.init) ?? path
                 if skippedNames.contains(name) || pruned.contains(path) || looksLikePackage(name, path, ask: isPackage) {
                     fts_set(fts, entry, FTS_SKIP)
