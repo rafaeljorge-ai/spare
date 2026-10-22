@@ -138,6 +138,19 @@ import SpareTestSupport
         #expect(report.items.first?.safety == .safe)
     }
 
+    @Test func projectFoldersInsideProtectedPlacesAreNeverListed() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try home.file("Documents/old/package.json", bytes: 10, modified: daysAgo(60))
+        try home.file("Documents/old/node_modules/lib.js", bytes: 30_000)
+        try home.directory("Documents/old/node_modules", modified: daysAgo(60))
+        let environment = SpareEnvironment.test(home: home.url, projectRoots: [home.path("Documents")])
+
+        let report = await Scanner(environment: environment).scan(categories: [.projectLeftovers])
+
+        #expect(report.items.isEmpty)
+    }
+
     @Test func marksItemsInUse() async throws {
         let home = try TempHome()
         defer { home.remove() }

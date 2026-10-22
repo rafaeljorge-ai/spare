@@ -23,9 +23,13 @@ public struct Scanner: Sendable {
             progress(ScanProgress(currentPath: path, completed: 0, total: 0, item: nil, finishedCategory: nil))
         }
         var candidates: [(Rule, URL)] = []
+        let guardian = SafetyGuard(environment: environment, catalog: catalog)
         for rule in rules where !Task.isCancelled {
             if case .projectArtifact(let name, _) = rule.kind {
-                candidates += (projectFound[name] ?? []).map { (rule, $0) }
+                // A project folder inside a protected place (say ~/Documents) is never listed: the Cleaner would
+                // skip it, so offering it as "safe" would be a lie.
+                candidates += (projectFound[name] ?? []).filter { guardian.violation(for: $0, rule: rule) == nil }
+                    .map { (rule, $0) }
             } else {
                 candidates += self.candidates(for: rule).map { (rule, $0) }
             }
