@@ -2,7 +2,15 @@
 
 Spare keeps your Mac's disk and memory in check, with a focus on developer and AI junk. Free, open source, menu bar app plus CLI.
 
-**Status:** v0.1.0 in development. Current step: see [`docs/planta/STATUS.md`](docs/planta/STATUS.md).
+**Status:** v0.1.0, first release candidate. Progress: [`docs/planta/STATUS.md`](docs/planta/STATUS.md). QA report: [`docs/qa/2026-10-v0.1.0.md`](docs/qa/2026-10-v0.1.0.md).
+
+![Overview after a scan](docs/img/en-overview.jpg)
+
+| Menu bar panel | Cleanup result |
+|---|---|
+| ![Panel](docs/img/en-panel.jpg) | ![Result](docs/img/en-result.jpg) |
+
+More screens (Portuguese): [overview](docs/img/pt-overview.jpg), [cleaning](docs/img/pt-cleaning.jpg), [confirmation](docs/img/pt-confirm.jpg), [history](docs/img/pt-history.jpg), [largest files](docs/img/pt-large-files.jpg), [memory](docs/img/pt-memory.jpg), [settings](docs/img/pt-settings.jpg). English: [memory](docs/img/en-memory.jpg), [largest files](docs/img/en-large-files.jpg), [settings](docs/img/en-settings.jpg).
 
 ## Why
 
@@ -35,6 +43,35 @@ People who code and use AI on a Mac pile up tens of GB of invisible junk: `npm`,
 - Emptying the system Trash is the only permanent removal and needs explicit confirmation.
 - Quitting a process: only your own, never PID 1 or system processes, never Spare itself, and never `SIGKILL`.
 
+## Install
+
+Requires macOS 14 or later. The v0.1.0 build is for Apple Silicon (arm64).
+
+1. Download `Spare-0.1.0.dmg` (and `Spare-0.1.0.dmg.sha256`) from the [Releases page](https://github.com/rafaeljorge-ai/spare/releases). Optional check: in the download folder, run `shasum -a 256 -c Spare-0.1.0.dmg.sha256`; it must print `OK`.
+2. Open the `.dmg` and drag Spare onto the Applications shortcut.
+3. Open Spare from Applications. macOS blocks it, because the app is not notarized (that needs a paid Apple developer account). Click **Done** (do not move it to the Bin).
+4. Open **System Settings > Privacy & Security**, scroll down to the message that says Spare was blocked, click **Open Anyway** and confirm with your password or Touch ID.
+5. Open Spare again and click **Open**. This is needed only once.
+6. Spare lives in the menu bar (the ring and your free GB). The Dock icon appears only while the main window is open.
+
+## What it cleans, and what it never touches
+
+Cleans (only what regenerates, or what goes to the Trash with Undo): developer caches (`npm`, `pnpm`, `yarn`, `uv`, `pip`, Cargo, Homebrew downloads, Xcode DerivedData, pre-commit, Playwright), AI model caches (Hugging Face, Whisper, Ollama, LM Studio), app caches and logs, old installers in Downloads, `node_modules`, `.venv`, `.next` and `target` of projects idle for 30 days, and the Trash (only on explicit confirmation).
+
+Never touches: anything outside your home folder, Documents, Desktop, Pictures, Movies, Music, the `~/Library` root, `.ssh`, `.gnupg`, `.aws`, `.kube`, Keychains, Mail, Messages and iCloud Drive; items in use; projects with recent activity.
+
+## Visible safety
+
+Every item shows a Safe or Review badge and the reason. Nothing runs before a confirmation that separates "deleted for good" from "goes to the Trash". Items in use are shown with the app that holds them and cannot be selected. A result screen shows the free space before and after, with Undo. Every cleanup is recorded in History.
+
+## Limitations
+
+- Not notarized: the "Open Anyway" step above is required. Notarization costs USD 99 per year and is planned once the project has users.
+- Apple Silicon only in v0.1.0 (the Command Line Tools build here is arm64).
+- Memory numbers are approximate: they are built from public APIs, and shared memory is counted in every process that uses it.
+- The cleanup record is saved when the cleanup ends; a crash in the middle loses the Undo for the items already moved (planned for v0.2).
+- Dark theme only. No Homebrew tap yet.
+
 ## Build from source
 
 Requires macOS 14+ and Swift 6 (Command Line Tools are enough, Xcode is optional).
@@ -42,7 +79,9 @@ Requires macOS 14+ and Swift 6 (Command Line Tools are enough, Xcode is optional
 ```
 swift build
 scripts/check.sh       # full local gate (runs the tests)
-scripts/build-app.sh   # builds dist/Spare.app
+scripts/build-app.sh   # builds dist/Spare.app (and its icon)
+scripts/build-dmg.sh   # builds dist/Spare-<version>.dmg and its .sha256
+swift build -c release --product spare   # the CLI, then copy .build/release/spare into your PATH
 ```
 
 ## CLI usage
@@ -90,7 +129,13 @@ MIT. See [LICENSE](LICENSE).
 
 Spare mantém o disco e a memória do seu Mac em ordem, com foco no lixo de desenvolvimento e de IA. Gratuito, código aberto, app de barra de menus mais CLI.
 
-**Status:** v0.1.0 em desenvolvimento. Etapa atual: veja [`docs/planta/STATUS.md`](docs/planta/STATUS.md).
+**Status:** v0.1.0, primeira versão candidata. Andamento: [`docs/planta/STATUS.md`](docs/planta/STATUS.md). Relatório de QA: [`docs/qa/2026-10-v0.1.0.md`](docs/qa/2026-10-v0.1.0.md).
+
+![Visão geral após a análise](docs/img/pt-overview.jpg)
+
+| Painel da barra de menus | Resultado da limpeza |
+|---|---|
+| ![Painel](docs/img/pt-panel.jpg) | ![Resultado](docs/img/pt-result.jpg) |
 
 ### Por quê
 
@@ -123,6 +168,35 @@ Quem programa e usa IA no Mac acumula dezenas de GB de lixo invisível: caches d
 - Esvaziar a Lixeira do sistema é a única remoção definitiva e exige confirmação explícita.
 - Encerrar processo: só os seus, nunca o PID 1 nem processos do sistema, nunca o próprio Spare, e nunca `SIGKILL`.
 
+### Instalação
+
+Requer macOS 14 ou superior. A versão 0.1.0 é para Apple Silicon (arm64).
+
+1. Baixe `Spare-0.1.0.dmg` (e `Spare-0.1.0.dmg.sha256`) na [página de Releases](https://github.com/rafaeljorge-ai/spare/releases). Conferência opcional: na pasta do download, rode `shasum -a 256 -c Spare-0.1.0.dmg.sha256`; deve mostrar `OK`.
+2. Abra o `.dmg` e arraste o Spare para o atalho de Aplicativos.
+3. Abra o Spare em Aplicativos. O macOS bloqueia, porque o app não é notarizado (isso exige uma conta Apple paga). Clique em **Concluído** (não mova para o Lixo).
+4. Abra **Ajustes do Sistema > Privacidade e Segurança**, role até a mensagem de que o Spare foi bloqueado, clique em **Abrir Mesmo Assim** e confirme com a senha ou o Touch ID.
+5. Abra o Spare de novo e clique em **Abrir**. Só é preciso uma vez.
+6. O Spare fica na barra de menus (o anel e seus GB livres). O ícone no Dock só aparece com a janela principal aberta.
+
+### O que limpa e o que nunca toca
+
+Limpa (só o que se regenera, ou o que vai para a Lixeira com Desfazer): caches de desenvolvimento (`npm`, `pnpm`, `yarn`, `uv`, `pip`, Cargo, downloads do Homebrew, DerivedData do Xcode, pre-commit, Playwright), caches de modelos de IA (Hugging Face, Whisper, Ollama, LM Studio), caches e logs de apps, instaladores antigos em Downloads, `node_modules`, `.venv`, `.next` e `target` de projetos parados há 30 dias, e a Lixeira (só com confirmação explícita).
+
+Nunca toca: nada fora da sua pasta pessoal, Documentos, Mesa, Imagens, Filmes, Música, a raiz de `~/Library`, `.ssh`, `.gnupg`, `.aws`, `.kube`, Keychains, Mail, Mensagens e iCloud Drive; itens em uso; projetos com atividade recente.
+
+### Segurança visível
+
+Cada item mostra o selo Seguro ou Revisar e o motivo. Nada roda antes de uma confirmação que separa "apagado de vez" de "vai para a Lixeira". Itens em uso aparecem com o app que os segura e não podem ser marcados. O resultado mostra o espaço livre antes e depois, com Desfazer. Toda limpeza fica registrada no Histórico.
+
+### Limitações
+
+- Sem notarização: o passo "Abrir Mesmo Assim" acima é obrigatório. A notarização custa USD 99 por ano e fica para quando o projeto tiver usuários.
+- Só Apple Silicon na v0.1.0 (o build com as Command Line Tools aqui é arm64).
+- Os números de memória são aproximados: vêm de APIs públicas, e a memória compartilhada é contada em cada processo que a usa.
+- O registro da limpeza é salvo ao final; uma queda no meio perde o Desfazer dos itens já movidos (previsto para a v0.2).
+- Só tema escuro. Ainda sem tap do Homebrew.
+
 ### Compilar do código-fonte
 
 Requer macOS 14+ e Swift 6 (as Command Line Tools bastam, o Xcode é opcional).
@@ -130,7 +204,9 @@ Requer macOS 14+ e Swift 6 (as Command Line Tools bastam, o Xcode é opcional).
 ```
 swift build
 scripts/check.sh       # gate local completo (roda os testes)
-scripts/build-app.sh   # gera dist/Spare.app
+scripts/build-app.sh   # gera dist/Spare.app (e o ícone)
+scripts/build-dmg.sh   # gera dist/Spare-<versão>.dmg e o .sha256
+swift build -c release --product spare   # a CLI; depois copie .build/release/spare para o seu PATH
 ```
 
 ### Uso da CLI
