@@ -84,7 +84,7 @@ import SpareTestSupport
         let seen = OutputCapture()
 
         let report = await Scanner(environment: .test(home: home.url)).scan { progress in
-            seen.write(progress.currentPath)
+            if progress.item != nil { seen.write(progress.currentPath) }
         }
 
         #expect(seen.text.split(separator: "\n").count == report.items.count)
@@ -173,5 +173,45 @@ import SpareTestSupport
         #expect(byName["abc"] == .some(InUseGuard.unknownReason))
         #expect(byName["_cacache"] == .some(nil))  // official command rule: the tool handles its locks
         #expect(report.reviewBytes == 0)
+    }
+
+    @Test func categoriesWithoutCandidatesStillReportAsFinished() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try home.file(".npm/_cacache/index/a", bytes: 50_000)
+        let finished = OutputCapture()
+
+        _ = await Scanner(environment: .test(home: home.url)).scan { progress in
+            if let category = progress.finishedCategory { finished.write(category.rawValue) }
+        }
+
+        let expected = Set(RuleCatalog.standard.rules.map(\.category.rawValue))
+        let seen = finished.text.split(separator: "\n").map(String.init)
+        #expect(Set(seen) == expected)
+        #expect(seen.count == expected.count)
+    }
+
+    @Test func cancelledScanSkipsTheProcessListing() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try makeJunk(home)
+        let calls = OutputCapture()
+        var environment = SpareEnvironment.test(home: home.url)
+        environment.diskSpace = { _ in
+            Thread.sleep(forTimeInterval: 0.3)
+            return nil
+        }
+        environment.processes = {
+            calls.write("listed")
+            return []
+        }
+        let scanner = Scanner(environment: environment)
+
+        let task = Task { await scanner.scan() }
+        task.cancel()
+        let report = await task.value
+
+        #expect(report.cancelled)
+        #expect(calls.text.isEmpty)
     }
 }

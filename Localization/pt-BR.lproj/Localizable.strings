@@ -1,2 +1,89 @@
-"Free space" = "Espaço livre";
-"Quit Spare" = "Sair do Spare";
+/* Sections */
+"Overview" = "Visão geral";
+"Cleanup" = "Limpeza";
+"Large Files" = "Maiores arquivos";
+"Memory" = "Memória";
+"History" = "Histórico";
+"Settings" = "Ajustes";
+"Records" = "Registro";
+"Coming in the next update" = "Chega na próxima atualização";
+
+/* Categories */
+"Developer caches" = "Caches de desenvolvimento";
+"Idle project leftovers" = "Restos de projetos parados";
+"AI tools" = "Ferramentas de IA";
+"App caches" = "Caches de apps";
+"Logs" = "Logs";
+"Forgotten installers" = "Instaladores esquecidos";
+"Trash" = "Lixeira";
+"Large files" = "Arquivos grandes";
+"Files you picked on the Large Files screen." = "Arquivos que você escolheu na tela Maiores arquivos.";
+"Package manager caches. They rebuild themselves when needed." = "Caches de gerenciadores de pacotes. Se regeneram sozinhos quando precisar.";
+"Dependencies of projects untouched for a while. Reinstall with one command." = "Dependências de projetos parados há um tempo. Reinstala com um comando.";
+"Downloaded models and runtimes. Review: they download again if you use them." = "Modelos e runtimes baixados. Revise: baixam de novo se você usar.";
+"Temporary data of closed apps. They rebuild themselves." = "Dados temporários de apps fechados. Se regeneram sozinhos.";
+"Old diagnostic logs." = "Registros antigos de diagnóstico.";
+"Installers in Downloads older than 30 days. Go to the Trash." = "Instaladores em Downloads com mais de 30 dias. Vão para a Lixeira.";
+"Emptying the Trash cannot be undone." = "Esvaziar a Lixeira não pode ser desfeito.";
+
+/* Safety and item status */
+"Safe" = "Seguro";
+"Review" = "Revisar";
+"Ready" = "Pronto";
+"In use" = "Em uso";
+"In use by %@" = "Em uso por %@";
+"Not verified" = "Não verificado";
+
+/* Menu bar panel */
+"Disk" = "Disco";
+"%@ free of %@" = "%@ livres de %@";
+"%@ used of %@" = "%@ em uso de %@";
+"Free up" = "Liberar";
+"View" = "Ver";
+"Analyze" = "Analisar";
+"Analyze everything" = "Analisar tudo";
+"Open Spare" = "Abrir o Spare";
+"Quit" = "Sair";
+"Try again" = "Tentar de novo";
+"Could not read the disk." = "Não foi possível ler o disco.";
+"Could not read the memory." = "Não foi possível ler a memória.";
+"Could not list the apps using memory." = "Não foi possível listar os apps que usam memória.";
+"Today's recommendation" = "Recomendação de hoje";
+"Only %@ left. Analyze to free space." = "Restam só %@. Analise para liberar espaço.";
+"You can free %@ safely." = "Você pode liberar %@ com segurança.";
+"Memory is high. See what is using it." = "Memória alta. Veja o que está pesando.";
+"All good here." = "Tudo certo por aqui.";
+"Pressure: normal" = "Pressão: normal";
+"Pressure: attention" = "Pressão: atenção";
+"Pressure: high" = "Pressão: alta";
+
+/* Sidebar */
+"%@ free" = "%@ livres";
+
+/* Overview */
+"Your Mac has %@ free" = "Seu Mac tem %@ livres";
+"Analyze caches, idle projects and AI leftovers in a single pass." = "Analise caches, projetos parados e restos de IA em uma única passada.";
+"Analyzing..." = "Analisando...";
+"%@ of %@ categories" = "%@ de %@ categorias";
+"Stop" = "Parar";
+"Analysis complete" = "Análise concluída";
+"Analysis interrupted, partial results" = "Análise interrompida, resultados parciais";
+"Plus %@ to review at your own pace." = "Mais %@ para você revisar com calma.";
+"can go safely" = "podem sair com segurança";
+"Safe %@" = "Seguro %@";
+"Review %@" = "Revisar %@";
+"Free %@" = "Livre %@";
+"And %@ more stay untouched." = "E mais %@ ficam intocados.";
+"Analyze again" = "Analisar de novo";
+"Review all" = "Revisar tudo";
+"in use of %@" = "em uso de %@";
+"unavailable" = "indisponível";
+"Never" = "Nunca";
+"Run the first analysis" = "Faça a primeira análise";
+"Last cleanup" = "Última limpeza";
+
+/* Accessibility and loading */
+"Loading..." = "Carregando...";
+"Done" = "Concluído";
+"Disk space" = "Espaço em disco";
+"Low disk space" = "Pouco espaço em disco";

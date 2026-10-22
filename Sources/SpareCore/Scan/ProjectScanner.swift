@@ -26,14 +26,20 @@ public struct ProjectScanner: Sendable {
     }
 
     /// - Parameter named: artifact directory name -> manifest file names (any one is enough).
-    /// - Returns: artifact directory name -> artifact URLs of idle projects.
-    public func artifacts(named: [String: [String]]) -> [String: [URL]] {
+    /// - Parameter progress: called with each root and each candidate artifact it is about to inspect.
+    /// - Returns: artifact directory name -> artifact URLs of idle projects. Honors task cancellation:
+    ///   the result then holds only what was already confirmed idle.
+    public func artifacts(
+        named: [String: [String]], progress: (String) -> Void = { _ in }
+    ) -> [String: [URL]] {
         let fm = FileManager.default
         let artifactNames = Set(named.keys)
         var found: [String: [URL]] = [:]
         var idleCache: [String: Bool] = [:]
 
         for root in roots {
+            if Task.isCancelled { break }
+            progress(root.path)
             // Same rule as SafetyGuard: nothing under a `.git` component is ever an artifact.
             if root.resolvingSymlinksInPath().pathComponents.contains(".git") { continue }
             guard let enumerator = fm.enumerator(
@@ -42,6 +48,7 @@ public struct ProjectScanner: Sendable {
             else { continue }
 
             while let url = enumerator.nextObject() as? URL {
+                if Task.isCancelled { break }
                 let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
                 guard values?.isDirectory == true, values?.isSymbolicLink != true else { continue }
                 let name = url.lastPathComponent
@@ -58,6 +65,7 @@ public struct ProjectScanner: Sendable {
                     fm.fileExists(atPath: project.appendingPathComponent($0).path)
                 }
                 guard hasManifest else { continue }
+                progress(url.path)
 
                 // Activity is measured at the whole repository when there is one, so a monorepo
                 // package is only idle if every package is.
@@ -98,6 +106,8 @@ public struct ProjectScanner: Sendable {
         let activityKeys = Set(Self.activityKeys)
 
         while let url = enumerator.nextObject() as? URL {
+            // Cancelled mid-walk: not proven idle, so the project is never offered for cleaning.
+            if Task.isCancelled { return false }
             let values = try? url.resourceValues(forKeys: activityKeys)
             if values?.isDirectory == true {
                 let name = url.lastPathComponent

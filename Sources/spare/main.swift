@@ -5,7 +5,9 @@ import SpareCore
 let variables = ProcessInfo.processInfo.environment
 let home = variables["SPARE_HOME"].map { URL(fileURLWithPath: $0, isDirectory: true) }
     ?? FileManager.default.homeDirectoryForCurrentUser
-var environment = SpareEnvironment.live(home: home)
+let supportDirectory = SpareEnvironment.live(home: home).supportDirectory
+let settings = SettingsStore(directory: supportDirectory).load(home: home.resolvingSymlinksInPath())
+var environment = SpareEnvironment.live(home: home, settings: settings)
 // QA only: send trashed items to a plain folder instead of the real Trash (`FileManager.trashItem` ignores SPARE_HOME).
 if let trashFolder = variables["SPARE_TRASH_DIR"] {
     environment.trash = DirectoryTrash(folder: URL(fileURLWithPath: trashFolder, isDirectory: true))

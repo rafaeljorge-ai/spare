@@ -9,9 +9,10 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CALLS = (
     r"(?:Text|Button|Label|Toggle|Section|ContentUnavailableView|LocalizedStringKey|"
-    r"navigationTitle|help|confirmationDialog|Stepper|Picker|TextField|GroupBox|LabeledContent)"
+    r"navigationTitle|help|confirmationDialog|Stepper|Picker|TextField|GroupBox|LabeledContent|"
+    r"Overline|Stat|accessibilityLabel|accessibilityValue|footerButton|unreadable)"
 )
-PATTERN = re.compile(CALLS + r'\(\s*"((?:[^"\\]|\\.)*)"')
+PATTERN = re.compile(CALLS + r'\(\s*(?:(?!verbatim\b)\w+:\s*)?"((?:[^"\\]|\\.)*)"')
 INTERPOLATION = re.compile(r"\\\((?:[^()]|\([^()]*\))*\)")
 
 

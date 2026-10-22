@@ -228,4 +228,33 @@ import SpareTestSupport
 
         #expect(scanner.artifacts(named: artifacts)["node_modules"] ?? [] == [])
     }
+
+    @Test func stopsWhenTheTaskIsCancelled() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try makeProject(home, "old-a", touchedDaysAgo: 60)
+        try makeProject(home, "old-b", touchedDaysAgo: 60)
+        let scanner = ProjectScanner(roots: [home.path("Projetos")], idleDays: 30, now: Date())
+
+        let task = Task {
+            while !Task.isCancelled { await Task.yield() }
+            return scanner.artifacts(named: artifacts)
+        }
+        task.cancel()
+
+        #expect(await task.value.isEmpty)
+    }
+
+    @Test func reportsTheFoldersItLooksAt() throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try makeProject(home, "old-a", touchedDaysAgo: 60)
+        let scanner = ProjectScanner(roots: [home.path("Projetos")], idleDays: 30, now: Date())
+        var seen: [String] = []
+
+        _ = scanner.artifacts(named: artifacts) { seen.append($0) }
+
+        #expect(seen.contains(home.path("Projetos").path))
+        #expect(seen.contains { $0.hasSuffix("old-a/node_modules") })
+    }
 }
