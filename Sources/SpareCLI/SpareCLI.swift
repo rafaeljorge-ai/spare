@@ -32,8 +32,6 @@ public struct SpareCLI: Sendable {
                                      (only a preview without --yes; the rest of the Trash is never touched)
           spare history [--json]     Past cleanups
           spare memory [--json]      Memory pressure and top consumers (approximate: shared memory is counted per process)
-          spare quit NAME [--yes] [--dry-run]   Ask one of your own apps or processes to quit (SIGTERM)
-                                     (only a preview without --yes; system processes and Spare itself are refused)
           spare help                 Show this help
         """
 
@@ -62,8 +60,6 @@ public struct SpareCLI: Sendable {
             return history(json: json)
         case "memory":
             return memory(json: json)
-        case "quit":
-            return quit(Array(args.dropFirst()))
         case "help", "--help", "-h":
             write(Self.usage)
             return 0
@@ -96,7 +92,7 @@ public struct SpareCLI: Sendable {
 
     func listProcesses() -> [RunningProcess]? {
         do {
-            return try environment.processes()
+            return try environment.memoryProcesses()
         } catch {
             writeError("Could not list running processes")
             return nil
@@ -117,42 +113,6 @@ public struct SpareCLI: Sendable {
         for consumer in consumers {
             write("  ~\(ByteFormat.string(consumer.bytes))  \(consumer.name)  pids: \(consumer.pids.map(String.init).joined(separator: ","))")
         }
-        return 0
-    }
-
-    /// Quits only with `--yes`, and never with `--dry-run`. SIGTERM only, own processes only.
-    func quit(_ args: [String]) -> Int32 {
-        guard let query = args.first(where: { !$0.hasPrefix("--") }) else {
-            writeError("Pass the name of an app or process (see: spare memory)")
-            return 64
-        }
-        guard let processes = listProcesses() else { return 1 }
-        let ownPID = ProcessInfo.processInfo.processIdentifier
-        let consumers = MemoryMonitor.topConsumers(
-            processes: processes, currentUID: getuid(), ownPID: ownPID, limit: .max)
-        let matches = consumers.filter { $0.id == query || $0.name.caseInsensitiveCompare(query) == .orderedSame }
-        guard !matches.isEmpty else {
-            writeError("No process of yours named \(query). Only your own apps and tools can be quit (see: spare memory)")
-            return 64
-        }
-        guard matches.count == 1, let consumer = matches.first else {
-            writeError("More than one match for \(query). Use one of these ids instead:")
-            matches.forEach { writeError("  \($0.id)") }
-            return 64
-        }
-        guard args.contains("--yes"), !args.contains("--dry-run") else {
-            write("Would ask \(consumer.name) (\(consumer.pids.count) process(es), ~\(ByteFormat.string(consumer.bytes))) to quit.")
-            write(args.contains("--dry-run") ? "Dry run: nothing was changed." : "Run again with --yes to quit it.")
-            return 0
-        }
-        let count = ProcessTerminator.terminate(
-            consumer, processes: processes, currentUID: getuid(), ownPID: ownPID,
-            currentPath: environment.executablePath, send: environment.sendSignal)
-        guard count > 0 else {
-            writeError("Could not ask \(consumer.name) to quit")
-            return 1
-        }
-        write("Asked \(consumer.name) to quit (\(count) process(es)). It may take a moment to close.")
         return 0
     }
 

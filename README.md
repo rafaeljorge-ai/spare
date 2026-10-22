@@ -63,9 +63,6 @@ spare purge [RECORD_ID] [--yes] [--dry-run]
 spare history [--json]     Past cleanups
 spare memory [--json]      Memory pressure and top consumers (approximate: built from public APIs,
                            shared memory is counted in every process that uses it)
-spare quit NAME [--yes] [--dry-run]
-                           Ask one of your own apps or tools to quit (SIGTERM). Without --yes it only
-                           previews; system processes and Spare itself are refused.
 spare help                 Show this help
 ```
 
@@ -152,9 +149,6 @@ spare purge [ID_DA_LIMPEZA] [--yes] [--dry-run]
 spare history [--json]     Limpezas anteriores
 spare memory [--json]      Pressão de memória e maiores consumidores (aproximado: APIs públicas,
                            memória compartilhada é contada em cada processo que a usa)
-spare quit NOME [--yes] [--dry-run]
-                           Pede a um app ou ferramenta seu que feche (SIGTERM). Sem --yes só mostra;
-                           processos do sistema e o próprio Spare são recusados.
 spare help                 Mostra a ajuda
 ```
 

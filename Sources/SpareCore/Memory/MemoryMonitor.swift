@@ -91,9 +91,11 @@ public enum MemoryMonitor {
     }
 
     /// The user's own non-system processes, grouped by app bundle (or executable), largest first.
-    /// Spare itself (pid and app bundle) and the PID 1 are never listed.
+    /// Spare itself (pid and app bundle) and the PID 1 are never listed. The bundle id is read only for the
+    /// `limit` largest rows when the listing did not carry it (the light listing never reads bundles).
     public static func topConsumers(
-        processes: [RunningProcess], currentUID: UInt32, ownPID: Int32, limit: Int = 15
+        processes: [RunningProcess], currentUID: UInt32, ownPID: Int32, limit: Int = 15,
+        bundleID: (String) -> String? = { Bundle(path: $0)?.bundleIdentifier }
     ) -> [MemoryConsumer] {
         let ownBundle = processes.first { $0.pid == ownPID }?.appBundlePath
         let eligible = processes.filter { process in
@@ -110,6 +112,10 @@ public enum MemoryMonitor {
         }
         .sorted { $0.bytes != $1.bytes ? $0.bytes > $1.bytes : $0.id < $1.id }
         .prefix(max(0, limit))
-        .map { $0 }
+        .map { consumer in
+            guard consumer.isApp, consumer.appBundleID == nil else { return consumer }
+            return MemoryConsumer(id: consumer.id, name: consumer.name, bytes: consumer.bytes, pids: consumer.pids,
+                                  appBundleID: bundleID(consumer.id), isApp: true)
+        }
     }
 }

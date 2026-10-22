@@ -79,4 +79,21 @@ import Testing
 
         #expect(MemoryMonitor.topConsumers(processes: processes, currentUID: 501, ownPID: 999, limit: 15).isEmpty)
     }
+
+    @Test func readsTheBundleIDOnlyForTheLargestConsumers() {
+        let processes = (1...5).map {
+            proc(Int32($0 + 10), mb: Int64($0) * 10, path: "/Applications/A\($0).app/Contents/MacOS/a", app: "/Applications/A\($0).app", name: "A\($0)")
+        }.map { p -> RunningProcess in var q = p; q.appBundleID = nil; return q }
+        final class Asked: @unchecked Sendable { var paths: [String] = [] }
+        let asked = Asked()
+
+        let top = MemoryMonitor.topConsumers(processes: processes, currentUID: 501, ownPID: 999, limit: 2) { path in
+            asked.paths.append(path)
+            return "id." + (path as NSString).lastPathComponent
+        }
+
+        #expect(top.map(\.name) == ["A5", "A4"])
+        #expect(top.map(\.appBundleID) == ["id.A5.app", "id.A4.app"])
+        #expect(asked.paths.count == 2)
+    }
 }
