@@ -1,5 +1,8 @@
 # Spare MVP (v0.1.0) Implementation Plan
 
+> **Read `00-ADDENDUM.md` first.** It records the owner's decisions of 2026-10-22 and overrides these task files where they disagree.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Each task lives in its own file in this folder; read this index first, then only your task file.
 
 **Goal:** Ship Spare v0.1.0, a free open-source macOS 14+ menu bar app (plus `spare` CLI) that monitors disk and memory and safely frees space taken by developer and AI junk.
