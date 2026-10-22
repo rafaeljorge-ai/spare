@@ -123,4 +123,17 @@ import SpareTestSupport
         #expect(decoded.items.count == report.items.count)
         #expect(decoded.safeReclaimableBytes == report.safeReclaimableBytes)
     }
+
+    @Test func scannerIncludesIdleProjectLeftovers() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try home.file("Projetos/old/package.json", bytes: 10, modified: daysAgo(60))
+        try home.file("Projetos/old/node_modules/lib.js", bytes: 30_000)
+        let environment = SpareEnvironment.test(home: home.url, projectRoots: [home.path("Projetos")])
+
+        let report = await Scanner(environment: environment).scan(categories: [.projectLeftovers])
+
+        #expect(report.items.map(\.ruleID) == ["project.nodeModules"])
+        #expect(report.items.first?.safety == .safe)
+    }
 }
