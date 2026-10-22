@@ -44,7 +44,7 @@ public struct SafetyGuard: Sendable {
             guard itemParent == parent, !name.hasPrefix(".") else { return .outsideCatalog }
             if excluded.contains(where: { name.hasPrefix($0) }) { return .outsideCatalog }
             // Items owned by a more specific `.path` rule never fall under a generic one.
-            if claimedPaths().contains(where: { $0 == path || $0.hasPrefix(path + "/") }) { return .outsideCatalog }
+            if catalog.claimedPaths(home: home).contains(where: { $0 == path || $0.hasPrefix(path + "/") }) { return .outsideCatalog }
             if let extensions, !extensions.contains((name as NSString).pathExtension.lowercased()) {
                 return .outsideCatalog
             }
@@ -64,16 +64,6 @@ public struct SafetyGuard: Sendable {
                 FileManager.default.fileExists(atPath: (parent as NSString).appendingPathComponent($0))
             }
             return hasManifest ? nil : .outsideCatalog
-        }
-    }
-
-    /// Resolved paths owned by specific `.path` rules (same normalization as the Scanner).
-    func claimedPaths() -> [String] {
-        catalog.rules.compactMap { rule in
-            if case .path(let relative) = rule.kind {
-                return home.appendingPathComponent(relative).resolvingSymlinksInPath().path
-            }
-            return nil
         }
     }
 

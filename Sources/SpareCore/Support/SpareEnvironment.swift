@@ -24,6 +24,7 @@ public struct SpareEnvironment: Sendable {
 
     /// Real environment for the CLI and the app.
     public static func live(home: URL) -> SpareEnvironment {
-        SpareEnvironment(home: home.resolvingSymlinksInPath())
+        let resolved = home.resolvingSymlinksInPath()
+        return SpareEnvironment(home: resolved, projectRoots: ProjectScanner.defaultRoots(home: resolved))
     }
 }

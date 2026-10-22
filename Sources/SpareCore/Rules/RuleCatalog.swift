@@ -11,6 +11,17 @@ public struct RuleCatalog: Sendable {
         rules.first { $0.id == id }
     }
 
+    /// Resolved paths owned by specific `.path` rules, so generic `.children` rules skip them.
+    /// Shared by `Scanner` and `SafetyGuard` so both normalize identically.
+    func claimedPaths(home: URL) -> [String] {
+        rules.compactMap { rule in
+            if case .path(let relative) = rule.kind {
+                return home.appendingPathComponent(relative).resolvingSymlinksInPath().path
+            }
+            return nil
+        }
+    }
+
     /// The closed list of everything Spare is allowed to clean.
     public static let standard = RuleCatalog(rules: [
         // Developer caches

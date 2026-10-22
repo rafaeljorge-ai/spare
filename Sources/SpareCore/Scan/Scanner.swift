@@ -18,9 +18,15 @@ public struct Scanner: Sendable {
         let freeBefore = environment.diskSpace(environment.home)?.freeBytes
         let rules = catalog.rules.filter { categories?.contains($0.category) ?? true }
 
+        let projectRules = rules.filter { if case .projectArtifact = $0.kind { true } else { false } }
+        let projectFound = projectRules.isEmpty ? [:] : projectArtifacts(for: projectRules)
         var candidates: [(Rule, URL)] = []
         for rule in rules where !Task.isCancelled {
-            candidates += self.candidates(for: rule).map { (rule, $0) }
+            if case .projectArtifact(let name, _) = rule.kind {
+                candidates += (projectFound[name] ?? []).map { (rule, $0) }
+            } else {
+                candidates += self.candidates(for: rule).map { (rule, $0) }
+            }
         }
 
         var pendingPerCategory = Dictionary(grouping: candidates, by: { $0.0.category }).mapValues(\.count)
@@ -65,7 +71,7 @@ public struct Scanner: Sendable {
                         safety: rule.safety, lastModified: modified)
     }
 
-    /// Paths a rule points at right now. Project artifacts are added in Task 3.
+    /// Paths a rule points at right now.
     public func candidates(for rule: Rule) -> [URL] {
         let fm = FileManager.default
         switch rule.kind {
@@ -74,7 +80,7 @@ public struct Scanner: Sendable {
             return fm.fileExists(atPath: url.path) ? [url] : []
         case .children(let parent, let excluded, let extensions, let minAgeDays):
             let dir = environment.home.appendingPathComponent(parent)
-            let claimed = claimedPaths()
+            let claimed = catalog.claimedPaths(home: environment.home)
             guard let children = try? fm.contentsOfDirectory(
                 at: dir, includingPropertiesForKeys: [.contentModificationDateKey], options: [])
             else { return [] }
@@ -93,18 +99,21 @@ public struct Scanner: Sendable {
                 }
                 return true
             }
-        case .projectArtifact:
-            return []
+        case .projectArtifact(let directoryName, _):
+            return projectArtifacts()[directoryName] ?? []
         }
     }
 
-    /// Paths owned by specific `.path` rules, so generic `.children` rules skip them.
-    func claimedPaths() -> [String] {
-        catalog.rules.compactMap { rule in
-            if case .path(let relative) = rule.kind {
-                return environment.home.appendingPathComponent(relative).resolvingSymlinksInPath().path
-            }
-            return nil
+    func projectArtifacts(for rules: [Rule]) -> [String: [URL]] {
+        var named: [String: [String]] = [:]
+        for rule in rules {
+            if case .projectArtifact(let name, let manifests) = rule.kind { named[name] = manifests }
         }
+        return ProjectScanner(roots: environment.projectRoots, idleDays: environment.projectIdleDays,
+                              now: environment.now()).artifacts(named: named)
+    }
+
+    func projectArtifacts() -> [String: [URL]] {
+        projectArtifacts(for: catalog.rules)
     }
 }
