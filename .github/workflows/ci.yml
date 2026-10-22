@@ -1,0 +1,30 @@
+# The official gate is local (scripts/check.sh). Actions only runs cheap,
+# agent-independent checks on every PR; the full gate is manual.
+name: CI
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: No committed .env files
+        run: |
+          if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$'; then
+            echo "Committed .env file found"; exit 1
+          fi
+  gates:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift version
+        run: swift --version
+      - name: Gates
+        run: scripts/check.sh

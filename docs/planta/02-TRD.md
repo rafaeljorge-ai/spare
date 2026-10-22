@@ -11,7 +11,7 @@
 | Testes | Swift Testing (`import Testing`) | Roda com `swift test` sem Xcode |
 | Empacotamento | `scripts/build-app.sh` monta `Spare.app`; `scripts/make-dmg.sh` gera o `.dmg` com `hdiutil` | Sem dependências externas |
 | Assinatura | Ad-hoc (`codesign --sign -`) | Obrigatório em Apple Silicon; sem custo |
-| CI | GitHub Actions `macos-latest` rodando `swift build` e `swift test` | Gratuito para repositório público; CI local é o gate oficial |
+| CI | GitHub Actions mínimo: gitleaks e checagem de `.env` em cada PR; gate completo (`macos-latest`, `scripts/check.sh`) só manual | O gate oficial é o local (`scripts/check.sh`) |
 | Licença | MIT | Igual ao Codenotch; nenhum código de terceiros GPL |
 
 Sem dependências de terceiros no MVP.
