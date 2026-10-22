@@ -54,7 +54,8 @@ spare rules                List rule IDs
 spare clean --rule ID [--rule ID] [--yes] [--dry-run] [--json]
                            Clean the items of these rules. Without --yes it only previews;
                            --dry-run always previews. Items in use are never cleaned.
-spare undo [RECORD_ID]     Restore trashed items of the last (or given) cleanup; an item whose
+spare undo [RECORD_ID] [--dry-run]
+                           Restore trashed items of the last (or given) cleanup; an item whose
                            original path is taken stays in the Trash and the reason is printed
 spare purge [RECORD_ID] [--yes] [--dry-run]
                            Permanently delete the items Spare itself moved to the Trash (the rest of
@@ -137,7 +138,8 @@ spare rules                Lista os IDs das regras
 spare clean --rule ID [--rule ID] [--yes] [--dry-run] [--json]
                            Limpa os itens dessas regras. Sem --yes só mostra o que faria;
                            --dry-run sempre só mostra. Itens em uso nunca são limpos.
-spare undo [ID_DA_LIMPEZA] Devolve os itens da última limpeza (ou da informada) ao lugar original;
+spare undo [ID_DA_LIMPEZA] [--dry-run]
+                           Devolve os itens da última limpeza (ou da informada) ao lugar original;
                            se o lugar original estiver ocupado, o item fica na Lixeira e o motivo é mostrado
 spare purge [ID_DA_LIMPEZA] [--yes] [--dry-run]
                            Apaga para sempre só os itens que o próprio Spare mandou para a Lixeira

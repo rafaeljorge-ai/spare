@@ -27,7 +27,7 @@ public struct SpareCLI: Sendable {
           spare rules                Rule IDs for clean
           spare clean --rule ID [--rule ID] [--yes] [--dry-run]   Clean the items of these rules
                                      (only a preview without --yes; --dry-run always previews)
-          spare undo [RECORD_ID]     Restore trashed items of the last (or given) cleanup
+          spare undo [RECORD_ID] [--dry-run]   Restore trashed items of the last (or given) cleanup
           spare purge [RECORD_ID] [--yes] [--dry-run]   Permanently delete Spare's own items from the Trash
                                      (only a preview without --yes; the rest of the Trash is never touched)
           spare history [--json]     Past cleanups
@@ -145,10 +145,12 @@ public struct SpareCLI: Sendable {
         }
 
         let record = await Cleaner(environment: environment).clean(items)
+        var historySaved = true
         do {
             try historyStore.append(record)
         } catch {
-            writeError("Warning: could not save history: \(error.localizedDescription)")
+            historySaved = false
+            writeError("Could not save the cleanup history (\(error.localizedDescription)). Items already in the Trash cannot be undone with Spare.")
         }
         if json {
             write(Self.encode(record))
@@ -162,6 +164,7 @@ public struct SpareCLI: Sendable {
                 write("\(ByteFormat.string(record.trashedBytes)) went to the Trash. Undo: spare undo \(record.id). Free it now: spare purge \(record.id) --yes")
             }
         }
+        if !historySaved { return 74 }
         return record.entries.contains { $0.status == .failed } ? 1 : 0
     }
 
@@ -172,45 +175,74 @@ public struct SpareCLI: Sendable {
     }
 
     /// The record named by the first positional argument, else the most recent one.
-    func target(_ args: [String]) -> RecordTarget {
+    func target(_ args: [String]) throws -> RecordTarget {
         if let given = args.first(where: { !$0.hasPrefix("--") }) {
             return UUID(uuidString: given).map(RecordTarget.record) ?? .invalid(given)
         }
-        return historyStore.load().first.map { .record($0.id) } ?? .none
+        return try historyStore.load().first.map { .record($0.id) } ?? .none
+    }
+
+    /// "Not found" is a different failure from a history file that cannot be read or written.
+    func report(_ error: any Error, id: UUID?) -> Int32 {
+        if let error = error as? HistoryError, error == .recordNotFound {
+            writeError("No cleanup with id \(id?.uuidString ?? "").")
+            return 1
+        }
+        writeError("Could not use the cleanup history: \(error.localizedDescription)")
+        return 74
+    }
+
+    /// The record to act on, or the exit code to return right away.
+    func resolveTarget(_ args: [String], verb: String) -> Result<UUID, ExitCode> {
+        do {
+            switch try target(args) {
+            case .record(let id): return .success(id)
+            case .none:
+                writeError("No cleanup to \(verb).")
+                return .failure(ExitCode(1))
+            case .invalid(let text):
+                writeError("Not a valid cleanup id: \(text)")
+                return .failure(ExitCode(64))
+            }
+        } catch {
+            return .failure(ExitCode(report(error, id: nil)))
+        }
+    }
+
+    struct ExitCode: Error {
+        let value: Int32
+        init(_ value: Int32) { self.value = value }
     }
 
     func undo(_ args: [String]) -> Int32 {
         let id: UUID
-        switch target(args) {
-        case .record(let found): id = found
-        case .none:
-            writeError("No cleanup to undo.")
-            return 1
-        case .invalid(let text):
-            writeError("Not a valid cleanup id: \(text)")
-            return 64
+        switch resolveTarget(args, verb: "undo") {
+        case .success(let found): id = found
+        case .failure(let code): return code.value
         }
         do {
+            if args.contains("--dry-run") {
+                let preview = try historyStore.previewUndo(recordID: id, trash: environment.trash)
+                write("Would restore \(preview.wouldRestore.count) item(s):")
+                preview.wouldRestore.forEach { write("  \(ByteFormat.string($0.sizeBytes))  \($0.originalPath)") }
+                preview.failures.forEach { writeError("  Would stay in the Trash (\($0.reason.message)): \($0.path)") }
+                write("Dry run: nothing was changed.")
+                return 0
+            }
             let result = try historyStore.undo(recordID: id, trash: environment.trash)
             write("Restored \(result.restored) item(s).")
             result.failures.forEach { writeError("  Kept in the Trash (\($0.reason.message)): \($0.path)") }
             return result.failures.isEmpty ? 0 : 1
         } catch {
-            writeError("No cleanup with id \(id).")
-            return 1
+            return report(error, id: id)
         }
     }
 
     func purge(_ args: [String]) -> Int32 {
         let id: UUID
-        switch target(args) {
-        case .record(let found): id = found
-        case .none:
-            writeError("No cleanup to purge.")
-            return 1
-        case .invalid(let text):
-            writeError("Not a valid cleanup id: \(text)")
-            return 64
+        switch resolveTarget(args, verb: "purge") {
+        case .success(let found): id = found
+        case .failure(let code): return code.value
         }
         do {
             guard args.contains("--yes"), !args.contains("--dry-run") else {
@@ -221,16 +253,22 @@ public struct SpareCLI: Sendable {
                 write(args.contains("--dry-run") ? "Dry run: nothing was changed." : "Run again with --yes to delete.")
                 return 0
             }
-            write("Freed \(ByteFormat.string(try historyStore.purge(recordID: id, trash: environment.trash))) from the Trash.")
-            return 0
+            let result = try historyStore.purge(recordID: id, trash: environment.trash)
+            write("Freed \(ByteFormat.string(result.freedBytes)) from the Trash.")
+            result.failures.forEach { writeError("  Not deleted (\($0.message)): \($0.path)") }
+            return result.failures.isEmpty ? 0 : 1
         } catch {
-            writeError("No cleanup with id \(id).")
-            return 1
+            return report(error, id: id)
         }
     }
 
     func history(json: Bool) -> Int32 {
-        let records = historyStore.load()
+        let records: [CleanupRecord]
+        do {
+            records = try historyStore.load()
+        } catch {
+            return report(error, id: nil)
+        }
         if json {
             write(Self.encode(records))
             return 0

@@ -9,8 +9,15 @@ public struct JSONFileStore<Value: Codable>: Sendable {
         self.url = url
     }
 
-    public func load() -> Value? {
-        guard let data = try? Data(contentsOf: url) else { return nil }
+    /// `nil` only when the file does not exist or is corrupt (it is then set aside). Any other read failure
+    /// (permissions, I/O) throws, so callers never mistake an unreadable history for an empty one.
+    public func load() throws -> Value? {
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+            return nil
+        }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         do {
@@ -21,13 +28,33 @@ public struct JSONFileStore<Value: Codable>: Sendable {
         }
     }
 
-    public func save(_ value: Value) throws {
+    /// Creates the private folder. Only the final folder gets 0700; parents such as `Library` keep the defaults.
+    func prepareFolder() throws {
         let fm = FileManager.default
         let folder = url.deletingLastPathComponent()
-        // Only the final folder gets 0700; parents such as `Library` keep the system defaults.
         try fm.createDirectory(at: folder.deletingLastPathComponent(), withIntermediateDirectories: true)
         try fm.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: folder.path)
+    }
+
+    /// Runs `body` holding an exclusive `flock` on `<name>.lock` next to the file, so a read, change and
+    /// write cycle cannot interleave with another process or task.
+    public func withLock<T>(_ body: () throws -> T) throws -> T {
+        try prepareFolder()
+        let lockPath = url.deletingLastPathComponent().appendingPathComponent(url.deletingPathExtension().lastPathComponent + ".lock").path
+        let descriptor = open(lockPath, O_RDWR | O_CREAT, 0o600)
+        guard descriptor >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        defer { close(descriptor) }
+        while flock(descriptor, LOCK_EX) != 0 {
+            guard errno == EINTR else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        }
+        defer { flock(descriptor, LOCK_UN) }
+        return try body()
+    }
+
+    public func save(_ value: Value) throws {
+        let fm = FileManager.default
+        try prepareFolder()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601

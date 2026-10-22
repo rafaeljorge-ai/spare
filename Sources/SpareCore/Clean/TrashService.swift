@@ -19,6 +19,13 @@ enum TrashFiles {
         return lstat(path, &info) == 0
     }
 
+    /// `device:inode` of the path itself (a symlink is not followed), nil when it does not exist.
+    static func identity(of path: String) -> String? {
+        var info = stat()
+        guard lstat(path, &info) == 0 else { return nil }
+        return "\(info.st_dev):\(info.st_ino)"
+    }
+
     static func isDirectory(_ path: String) -> Bool {
         var info = stat()
         return lstat(path, &info) == 0 && (info.st_mode & S_IFMT) == S_IFDIR
@@ -61,8 +68,22 @@ public struct SystemTrash: TrashService {
         let parent = url.deletingLastPathComponent()
         guard url.lastPathComponent != "/", TrashFiles.isDirectory(parent.path) else { return false }
         let ownTrash = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".Trash").path
-        if parent.path == ownTrash { return true }
-        return parent.deletingLastPathComponent().lastPathComponent == ".Trashes"
+        return parent.path == ownTrash || Self.isVolumeTrashChild(url, uid: getuid())
+    }
+
+    /// `<volume root>/.Trashes/<uid>/<item>`, where the volume root is `/` or `/Volumes/<name>`.
+    static func isVolumeTrashChild(_ url: URL, uid: uid_t) -> Bool {
+        let parts = url.pathComponents
+        guard parts.first == "/" else { return false }
+        let rest = Array(parts.dropFirst())
+        let prefix: Int
+        switch rest.first {
+        case ".Trashes": prefix = 0
+        case "Volumes": prefix = 2
+        default: return false
+        }
+        guard rest.count == prefix + 3, prefix == 0 || !rest[1].isEmpty else { return false }
+        return rest[prefix] == ".Trashes" && rest[prefix + 1] == String(uid) && !rest[prefix + 2].isEmpty
     }
 
     public func purge(_ trashed: URL) throws {

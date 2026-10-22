@@ -29,7 +29,7 @@ import SpareTestSupport
         #expect(home.exists("Library/Logs/App/a.log"))
         #expect(output.text.contains("Would clean"))
         #expect(output.text.contains("--yes"))
-        #expect(store(home).load().isEmpty)
+        #expect((try store(home).load()).isEmpty)
     }
 
     @Test func dryRunWinsOverYes() async throws {
@@ -43,7 +43,7 @@ import SpareTestSupport
         #expect(code == 0)
         #expect(home.exists("Library/Logs/App/a.log"))
         #expect(output.text.contains("Would clean"))
-        #expect(store(home).load().isEmpty)
+        #expect((try store(home).load()).isEmpty)
     }
 
     @Test func withYesItCleansAndRecordsHistory() async throws {
@@ -56,7 +56,7 @@ import SpareTestSupport
 
         #expect(code == 0)
         #expect(!home.exists("Library/Logs/App"))
-        #expect(store(home).load().count == 1)
+        #expect((try store(home).load()).count == 1)
     }
 
     @Test func itemsInUseAreNeverCleaned() async throws {
@@ -134,7 +134,7 @@ import SpareTestSupport
 
         #expect(code == 0)
         #expect(trashContents(home) == ["users-own-file.txt"])
-        #expect(store(home).load().first?.entries.first?.status == .purged)
+        #expect((try store(home).load()).first?.entries.first?.status == .purged)
     }
 
     @Test func historyJSONListsRecords() async throws {
@@ -194,5 +194,70 @@ import SpareTestSupport
 
         #expect(await cli(home, output, errors: errors).run(["undo"]) == 1)
         #expect(errors.text.contains("No cleanup"))
+    }
+
+    @Test func undoDryRunChangesNothing() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try home.file("Downloads/old.dmg", bytes: 5_000, modified: daysAgo(60))
+        let output = OutputCapture()
+        _ = await cli(home, output).run(["clean", "--rule", "downloads.installers", "--yes"])
+        let preview = OutputCapture()
+
+        let code = await cli(home, preview).run(["undo", "--dry-run"])
+
+        #expect(code == 0)
+        #expect(!home.exists("Downloads/old.dmg"))
+        #expect(preview.text.contains("Would restore 1"))
+        #expect(preview.text.contains("Dry run"))
+        #expect(trashContents(home).count == 1)
+        #expect((try store(home).load()).first?.entries.first?.status == .done)
+    }
+
+    @Test func unreadableHistoryIsAnIOErrorNotAMissingCleanup() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try home.file("Downloads/old.dmg", bytes: 5_000, modified: daysAgo(60))
+        let output = OutputCapture()
+        _ = await cli(home, output).run(["clean", "--rule", "downloads.installers", "--yes"])
+        let file = SpareEnvironment.test(home: home.url).supportDirectory.appendingPathComponent("history.json")
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: file.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path) }
+        let errors = OutputCapture()
+
+        let code = await cli(home, OutputCapture(), errors: errors).run(["undo"])
+
+        #expect(code == 74)
+        #expect(!errors.text.contains("No cleanup"))
+        #expect(!errors.text.isEmpty)
+    }
+
+    @Test func unknownRecordIDIsReportedAsNotFound() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let errors = OutputCapture()
+
+        let code = await cli(home, OutputCapture(), errors: errors)
+            .run(["purge", UUID().uuidString, "--yes"])
+
+        #expect(code == 1)
+        #expect(errors.text.contains("No cleanup with id"))
+    }
+
+    @Test func purgeFailuresGoToStderrWithNonZeroExit() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try home.file("Downloads/old.dmg", bytes: 5_000, modified: daysAgo(60))
+        let output = OutputCapture()
+        _ = await cli(home, output).run(["clean", "--rule", "downloads.installers", "--yes"])
+        try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: home.trashFolder.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: home.trashFolder.path) }
+        let errors = OutputCapture()
+
+        let code = await cli(home, output, errors: errors).run(["purge", "--yes"])
+
+        #expect(code == 1)
+        #expect(errors.text.contains("old.dmg"))
+        #expect(trashContents(home).count == 1)
     }
 }

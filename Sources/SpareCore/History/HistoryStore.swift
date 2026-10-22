@@ -40,6 +40,25 @@ public struct UndoResult: Codable, Sendable, Equatable {
     }
 }
 
+/// What `undo` would do, without doing it.
+public struct UndoPreview: Sendable, Equatable {
+    public let wouldRestore: [CleanupEntry]
+    public let failures: [UndoFailure]
+}
+
+public struct PurgeFailure: Codable, Sendable, Hashable {
+    public let path: String
+    public let message: String
+}
+
+public struct PurgeResult: Codable, Sendable, Equatable {
+    public let freedBytes: Int64
+    public let purged: Int
+    /// Items that stayed in the Trash: a failed removal or an entry that is no longer the item Spare moved.
+    /// Items that already left the Trash are not failures.
+    public let failures: [PurgeFailure]
+}
+
 public enum HistoryError: Error, Equatable {
     case recordNotFound
 }
@@ -53,24 +72,48 @@ public struct HistoryStore: Sendable {
         self.limit = limit
     }
 
-    /// Newest first.
-    public func load() -> [CleanupRecord] {
-        (file.load() ?? []).sorted { $0.startedAt > $1.startedAt }
+    /// Newest first. Throws when the file exists but cannot be read; a missing file is an empty history.
+    public func load() throws -> [CleanupRecord] {
+        (try file.load() ?? []).sorted { $0.startedAt > $1.startedAt }
     }
 
-    /// Saves a cleanup. Items in the Trash get their identity stamped, which is what later lets
-    /// undo and purge tell the item Spare moved from anything else that ends up at that path.
+    /// Saves a cleanup. The Cleaner already stamped each trashed item's identity when it moved it; this does
+    /// not stamp anything, so a later swap in the Trash can never be mistaken for the item Spare moved.
     public func append(_ record: CleanupRecord) throws {
-        var stamped = record
-        for index in stamped.entries.indices {
-            let entry = stamped.entries[index]
-            guard entry.trashIdentity == nil, entry.status == .done, entry.action == .trash,
-                  let trashPath = entry.trashPath else { continue }
-            stamped.entries[index].trashIdentity = Self.identity(of: trashPath)
+        try file.withLock {
+            var records = try load()
+            records.insert(record, at: 0)
+            try file.save(Array(records.sorted { $0.startedAt > $1.startedAt }.prefix(limit)))
         }
-        var records = load()
-        records.insert(stamped, at: 0)
-        try file.save(Array(records.sorted { $0.startedAt > $1.startedAt }.prefix(limit)))
+    }
+
+    /// Why this entry cannot be restored right now, nil when it can.
+    static func undoBlocker(_ entry: CleanupEntry, trash: any TrashService) -> UndoFailureReason? {
+        guard let trashPath = entry.trashPath else { return .missingInTrash }
+        if Cleaner.isNotNormalized(URL(fileURLWithPath: entry.originalPath)) { return .invalidPath }
+        if !TrashFiles.exists(trashPath) { return .missingInTrash }
+        if !isStillTheTrashedItem(entry, trash: trash) { return .changedInTrash }
+        if TrashFiles.exists(entry.originalPath) { return .destinationExists }
+        return nil
+    }
+
+    static func isUndoable(_ entry: CleanupEntry) -> Bool {
+        entry.status == .done && entry.action == .trash && entry.trashPath != nil
+    }
+
+    /// What `undo` would restore and what would stay in the Trash. Changes nothing.
+    public func previewUndo(recordID: UUID, trash: any TrashService) throws -> UndoPreview {
+        guard let record = try load().first(where: { $0.id == recordID }) else { throw HistoryError.recordNotFound }
+        var restorable: [CleanupEntry] = []
+        var failures: [UndoFailure] = []
+        for entry in record.entries where Self.isUndoable(entry) {
+            if let reason = Self.undoBlocker(entry, trash: trash) {
+                failures.append(UndoFailure(path: entry.originalPath, reason: reason))
+            } else {
+                restorable.append(entry)
+            }
+        }
+        return UndoPreview(wouldRestore: restorable, failures: failures)
     }
 
     /// Moves the record's trashed items back to where they came from. An item whose original path is taken
@@ -79,28 +122,14 @@ public struct HistoryStore: Sendable {
         try mutate(recordID) { record in
             var restored = 0
             var failures: [UndoFailure] = []
-            for index in record.entries.indices {
+            for index in record.entries.indices where Self.isUndoable(record.entries[index]) {
                 let entry = record.entries[index]
-                guard entry.status == .done, entry.action == .trash, let trashPath = entry.trashPath else { continue }
-                let original = URL(fileURLWithPath: entry.originalPath)
-                if Cleaner.isNotNormalized(original) {
-                    failures.append(UndoFailure(path: entry.originalPath, reason: .invalidPath))
-                    continue
-                }
-                if !TrashFiles.exists(trashPath) {
-                    failures.append(UndoFailure(path: entry.originalPath, reason: .missingInTrash))
-                    continue
-                }
-                guard Self.isStillTheTrashedItem(entry, trash: trash) else {
-                    failures.append(UndoFailure(path: entry.originalPath, reason: .changedInTrash))
-                    continue
-                }
-                if TrashFiles.exists(entry.originalPath) {
-                    failures.append(UndoFailure(path: entry.originalPath, reason: .destinationExists))
+                if let reason = Self.undoBlocker(entry, trash: trash) {
+                    failures.append(UndoFailure(path: entry.originalPath, reason: reason))
                     continue
                 }
                 do {
-                    try trash.restore(URL(fileURLWithPath: trashPath), to: original)
+                    try trash.restore(URL(fileURLWithPath: entry.trashPath!), to: URL(fileURLWithPath: entry.originalPath))
                     record.entries[index].status = .restored
                     restored += 1
                 } catch {
@@ -114,46 +143,65 @@ public struct HistoryStore: Sendable {
 
     /// What `purge` would delete: this record's items that are still exactly where Spare put them.
     public func pendingPurge(recordID: UUID, trash: any TrashService) throws -> [CleanupEntry] {
-        guard let record = load().first(where: { $0.id == recordID }) else { throw HistoryError.recordNotFound }
-        return record.entries.filter { Self.canPurge($0, trash: trash) }
+        guard let record = try load().first(where: { $0.id == recordID }) else { throw HistoryError.recordNotFound }
+        return record.entries.filter { Self.purgeState($0, trash: trash) == .eligible }
     }
 
     /// Permanently deletes this record's items that are still in the Trash at the recorded path and are still
-    /// the same item. Never empties the Trash, never follows a symlink. Returns bytes freed.
-    public func purge(recordID: UUID, trash: any TrashService) throws -> Int64 {
+    /// the same item. Never empties the Trash, never follows a symlink. Failures are returned, not swallowed.
+    public func purge(recordID: UUID, trash: any TrashService) throws -> PurgeResult {
         try mutate(recordID) { record in
             var freed: Int64 = 0
+            var purged = 0
+            var failures: [PurgeFailure] = []
             for index in record.entries.indices {
                 let entry = record.entries[index]
-                // The path is checked again right before deleting.
-                guard Self.canPurge(entry, trash: trash), let trashPath = entry.trashPath else { continue }
-                if (try? trash.purge(URL(fileURLWithPath: trashPath))) != nil {
-                    record.entries[index].status = .purged
-                    freed += entry.sizeBytes
+                // The location and identity are checked again right before deleting.
+                switch Self.purgeState(entry, trash: trash) {
+                case .notApplicable, .gone:
+                    continue
+                case .changed:
+                    failures.append(PurgeFailure(
+                        path: entry.originalPath, message: "the Trash entry is not the item Spare moved, left untouched"))
+                case .eligible:
+                    do {
+                        try trash.purge(URL(fileURLWithPath: entry.trashPath!))
+                        record.entries[index].status = .purged
+                        freed += entry.sizeBytes
+                        purged += 1
+                    } catch {
+                        failures.append(PurgeFailure(path: entry.originalPath, message: error.localizedDescription))
+                    }
                 }
             }
-            return freed
+            return PurgeResult(freedBytes: freed, purged: purged, failures: failures)
         }
     }
 
     public func clear() throws {
-        try file.delete()
+        try file.withLock { try file.delete() }
     }
 
+    /// Reads, changes and writes under the lock, so concurrent runs cannot lose each other's changes.
     func mutate<T>(_ id: UUID, _ change: (inout CleanupRecord) throws -> T) throws -> T {
-        var records = load()
-        guard let index = records.firstIndex(where: { $0.id == id }) else { throw HistoryError.recordNotFound }
-        let result = try change(&records[index])
-        try file.save(records)
-        return result
+        try file.withLock {
+            var records = try load()
+            guard let index = records.firstIndex(where: { $0.id == id }) else { throw HistoryError.recordNotFound }
+            let result = try change(&records[index])
+            try file.save(records)
+            return result
+        }
     }
 
-    static func canPurge(_ entry: CleanupEntry, trash: any TrashService) -> Bool {
-        entry.status == .done && entry.action == .trash && entry.trashPath != nil
-            && isStillTheTrashedItem(entry, trash: trash)
+    enum PurgeState { case notApplicable, gone, changed, eligible }
+
+    static func purgeState(_ entry: CleanupEntry, trash: any TrashService) -> PurgeState {
+        guard isUndoable(entry), let trashPath = entry.trashPath else { return .notApplicable }
+        if !TrashFiles.exists(trashPath) { return .gone }
+        return isStillTheTrashedItem(entry, trash: trash) ? .eligible : .changed
     }
 
-    /// In the Trash (a direct child, not a symlink out of it) and the same device and inode as when saved.
+    /// In the Trash (a direct child, not a symlink out of it) and the same device and inode as when moved.
     static func isStillTheTrashedItem(_ entry: CleanupEntry, trash: any TrashService) -> Bool {
         guard let trashPath = entry.trashPath, let saved = entry.trashIdentity else { return false }
         let url = URL(fileURLWithPath: trashPath)
@@ -162,8 +210,6 @@ public struct HistoryStore: Sendable {
 
     /// `device:inode` of the path itself (a symlink is not followed), nil when it does not exist.
     static func identity(of path: String) -> String? {
-        var info = stat()
-        guard lstat(path, &info) == 0 else { return nil }
-        return "\(info.st_dev):\(info.st_ino)"
+        TrashFiles.identity(of: path)
     }
 }
