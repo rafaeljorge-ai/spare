@@ -15,10 +15,14 @@ Quem usa IA e programa no Mac acumula dezenas de GB de lixo invisível: caches d
 
 ## Princípios
 
-1. **Funcional antes de estético.** Interface nativa e limpa do macOS; sem ilustrações 3D nem fundos animados.
+Definidos pelo dono em 2026-10-22: seguro, visual caprichado, leve e intuitivo.
+
+1. **Visual caprichado, sem pesar.** Funciona primeiro, mas com acabamento: direção aprovada no protótipo (`.interface-design/system.md`), inspirada na sensação do CleanMyMac sem usar a marca dele. Sem ilustrações 3D nem vídeos.
 2. **Leve.** Fica aberto o dia todo sem pesar (meta: menos de 60 MB de RAM e CPU perto de 0% em repouso).
 3. **Seguro por padrão.** Só toca no que está no catálogo de regras; prévia antes de qualquer ação; só apaga direto o que se regenera sozinho, o resto vai para a Lixeira; nunca mexe no que está em uso.
-4. **Linguagem de usuário.** Cada item explica em uma frase o que é e o que acontece se for removido.
+4. **Mostrar que é seguro.** A segurança fica visível na tela: selo Seguro ou Revisar em cada item, motivo de bloqueio ("Em uso por Claude"), confirmação dizendo o que é apagado de vez e o que vai para a Lixeira, Desfazer e Histórico sempre à mão.
+5. **Intuitivo.** Uma ação principal por tela; quem não programa entende o que fazer sem ler manual.
+6. **Linguagem de usuário.** Cada item explica em uma frase o que é e o que acontece se for removido.
 
 ## Escopo do MVP (v0.1.0)
 

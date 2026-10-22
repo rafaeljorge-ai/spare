@@ -63,6 +63,7 @@ More commands arrive in later tasks.
 - [Data and permissions](docs/planta/04-DADOS-E-PERMISSOES.md)
 - [Operations and release](docs/planta/05-OPERACAO-E-RELEASE.md)
 - [Status](docs/planta/STATUS.md)
+- [Design system](.interface-design/system.md) and the visual prototype (`Prototype/run.sh`)
 - [Implementation plan](docs/superpowers/plans/2026-10-22-spare-mvp/00-INDEX.md)
 
 ## License
