@@ -49,6 +49,7 @@ scripts/build-app.sh   # builds dist/Spare.app
 
 ```
 spare status [--json]      Free disk space
+spare scan [--json] [--category ID]   Preview what can be freed (changes nothing)
 spare help                 Show this help
 ```
 
@@ -119,6 +120,7 @@ scripts/build-app.sh   # gera dist/Spare.app
 
 ```
 spare status [--json]      Espaço livre em disco
+spare scan [--json] [--category ID]   Mostra o que dá para liberar (não altera nada)
 spare help                 Mostra a ajuda
 ```
 

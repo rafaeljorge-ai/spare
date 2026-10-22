@@ -23,6 +23,7 @@ public struct SpareCLI: Sendable {
 
         USAGE:
           spare status [--json]      Free disk space
+          spare scan [--json] [--category ID]   Preview what can be freed (changes nothing)
           spare help                 Show this help
         """
 
@@ -37,6 +38,8 @@ public struct SpareCLI: Sendable {
         switch command {
         case "status":
             return status(json: json)
+        case "scan":
+            return await scan(Array(args.dropFirst()), json: json)
         case "help", "--help", "-h":
             write(Self.usage)
             return 0
@@ -57,6 +60,50 @@ public struct SpareCLI: Sendable {
             write("Free: \(ByteFormat.string(disk.freeBytes)) of \(ByteFormat.string(disk.totalBytes))")
         }
         return 0
+    }
+
+    func scan(_ args: [String], json: Bool) async -> Int32 {
+        var categories: Set<CategoryID>?
+        let names = Self.option("--category", in: args)
+        if !names.isEmpty {
+            let parsed = names.compactMap(CategoryID.init(rawValue:))
+            guard parsed.count == names.count else {
+                writeError("Unknown category. Valid: \(CategoryID.allCases.map(\.rawValue).joined(separator: ", "))")
+                return 64
+            }
+            categories = Set(parsed)
+        }
+        let report = await Scanner(environment: environment).scan(categories: categories)
+        if json {
+            write(Self.encode(report))
+            return 0
+        }
+        for category in CategoryID.allCases {
+            let items = report.items(in: category)
+            guard !items.isEmpty else { continue }
+            write("\(category.rawValue): \(ByteFormat.string(report.totalBytes(in: category))) in \(items.count) item(s)")
+            for item in items {
+                let flag = item.inUseBy.map { " [in use: \($0)]" } ?? ""
+                write("  \(item.safety.rawValue)  \(ByteFormat.string(item.sizeBytes))  \(item.url.path)\(flag)")
+            }
+        }
+        write("Safe to free: \(ByteFormat.string(report.safeReclaimableBytes))")
+        write("To review: \(ByteFormat.string(report.reviewBytes))")
+        return 0
+    }
+
+    static func option(_ name: String, in args: [String]) -> [String] {
+        var values: [String] = []
+        var index = 0
+        while index < args.count {
+            if args[index] == name, index + 1 < args.count {
+                values.append(args[index + 1])
+                index += 2
+            } else {
+                index += 1
+            }
+        }
+        return values
     }
 
     static func encode<T: Encodable>(_ value: T) -> String {
