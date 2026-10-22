@@ -122,3 +122,13 @@ public struct DirectoryTrash: TrashService {
         try TrashFiles.purge(trashed, in: self)
     }
 }
+
+public enum TrashFolder {
+    /// The folder that stands in for the real Trash on a throwaway home: `SPARE_TRASH_DIR`, or
+    /// `<home>/.Trash` when only `SPARE_HOME` is set. Nil on a real run (the system Trash).
+    public static func override(variables: [String: String], home: URL) -> URL? {
+        if let folder = variables["SPARE_TRASH_DIR"] { return URL(fileURLWithPath: folder, isDirectory: true) }
+        if variables["SPARE_HOME"] != nil { return home.appendingPathComponent(".Trash", isDirectory: true) }
+        return nil
+    }
+}

@@ -51,6 +51,8 @@ public enum SkipReason: String, Codable, Sendable, Hashable {
     case inUse, notFound, outsideCatalog, protected, cancelled, toolNotFound
     /// A project leftover whose project was used again after the scan.
     case projectActive
+    /// Tool commands are off on a throwaway home (`SPARE_HOME`), so real tool caches stay safe.
+    case toolsDisabled
 }
 
 public struct Rule: Codable, Sendable, Identifiable, Hashable {

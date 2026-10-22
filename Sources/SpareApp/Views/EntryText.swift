@@ -9,6 +9,7 @@ enum EntryNote: Equatable {
     case protected
     case stopped
     case toolMissing
+    case toolsDisabled
     case projectActive
     case failed(String)
     case restored
@@ -28,6 +29,7 @@ enum EntryNote: Equatable {
         case .outsideCatalog?, .protected?: self = .protected
         case .cancelled?: self = .stopped
         case .toolNotFound?: self = .toolMissing
+        case .toolsDisabled?: self = .toolsDisabled
         case .projectActive?: self = .projectActive
         case nil:
             switch entry.status {
@@ -48,6 +50,7 @@ enum EntryNote: Equatable {
         case .protected: Text("Protected, not touched")
         case .stopped: Text("Stopped")
         case .toolMissing: Text("Tool not installed")
+        case .toolsDisabled: Text("Tool commands are off on a test home")
         case .projectActive: Text("Project used again, left alone")
         case .failed(let message): Text("Failed: \(message)")
         case .restored: Text("Restored")

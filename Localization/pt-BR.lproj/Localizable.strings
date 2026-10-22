@@ -201,6 +201,7 @@
 "Protected, not touched" = "Protegido, não foi tocado";
 "Stopped" = "Interrompido";
 "Tool not installed" = "Ferramenta não instalada";
+"Tool commands are off on a test home" = "Comandos de ferramentas desligados em uma pasta de teste";
 "Project used again, left alone" = "Projeto usado de novo, deixado em paz";
 "Failed: %@" = "Falhou: %@";
 "Restored" = "Restaurado";

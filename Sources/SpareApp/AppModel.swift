@@ -113,11 +113,8 @@ final class AppModel: ObservableObject {
     /// folder that stands in for it, and with `SPARE_HOME` alone it is `<home>/.Trash`.
     nonisolated static func liveEnvironment(home: URL, settings: SpareSettings) -> SpareEnvironment {
         var environment = SpareEnvironment.live(home: home, settings: settings)
-        let variables = ProcessInfo.processInfo.environment
-        if let folder = variables["SPARE_TRASH_DIR"] {
-            environment.trash = DirectoryTrash(folder: URL(fileURLWithPath: folder, isDirectory: true))
-        } else if variables["SPARE_HOME"] != nil {
-            environment.trash = DirectoryTrash(folder: home.appendingPathComponent(".Trash", isDirectory: true))
+        if let folder = TrashFolder.override(variables: ProcessInfo.processInfo.environment, home: home) {
+            environment.trash = DirectoryTrash(folder: folder)
         }
         return environment
     }

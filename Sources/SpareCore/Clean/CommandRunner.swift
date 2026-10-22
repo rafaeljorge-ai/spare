@@ -14,6 +14,8 @@ public enum CommandError: Error, Equatable {
     case notFound(String)
     /// The tool ran past its time limit and was terminated.
     case timedOut(String)
+    /// Tool commands are off (a throwaway home must never reach the real tool caches).
+    case disabled(String)
 }
 
 public protocol CommandRunning: Sendable {
@@ -26,16 +28,22 @@ public struct SystemCommandRunner: CommandRunning {
     public static let defaultLookupTimeout: TimeInterval = 5
     public static let defaultCommandTimeout: TimeInterval = 300
 
+    /// Tools run with this as `HOME`, so they never touch the caches of the real user.
+    public let home: URL
     public let searchPaths: [String]
+    /// Refuses to run any tool (throws `CommandError.disabled`).
+    public let disabled: Bool
     public let lookupTimeout: TimeInterval
     public let commandTimeout: TimeInterval
     /// Used when the tool is not in `searchPaths`. Tests inject one that never starts a shell.
     let fallbackLookup: @Sendable (String) -> String?
 
-    public init(home: URL, searchPaths: [String]? = nil,
+    public init(home: URL, searchPaths: [String]? = nil, disabled: Bool = false,
                 lookupTimeout: TimeInterval = SystemCommandRunner.defaultLookupTimeout,
                 commandTimeout: TimeInterval = SystemCommandRunner.defaultCommandTimeout,
                 fallbackLookup: (@Sendable (String) -> String?)? = nil) {
+        self.home = home
+        self.disabled = disabled
         self.searchPaths = searchPaths ?? [
             "/opt/homebrew/bin", "/usr/local/bin",
             home.appendingPathComponent(".local/bin").path,
@@ -57,6 +65,11 @@ public struct SystemCommandRunner: CommandRunning {
         return fallbackLookup(executable)
     }
 
+    /// Tool commands are off while `SPARE_HOME` names a throwaway home, unless `SPARE_ALLOW_TOOL_COMMANDS=1`.
+    public static func toolCommandsDisabled(_ variables: [String: String]) -> Bool {
+        variables["SPARE_HOME"] != nil && variables["SPARE_ALLOW_TOOL_COMMANDS"] != "1"
+    }
+
     /// Falls back to the user's login shell PATH (nvm, asdf, mise...).
     static func loginShellLookup(_ executable: String, timeout: TimeInterval) -> String? {
         guard executable.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" || $0 == "." }) else { return nil }
@@ -76,8 +89,10 @@ public struct SystemCommandRunner: CommandRunning {
     }
 
     public func run(_ executable: String, _ arguments: [String]) throws -> CommandResult {
+        if disabled { throw CommandError.disabled(executable) }
         guard let path = resolve(executable) else { throw CommandError.notFound(executable) }
         var variables = ProcessInfo.processInfo.environment
+        variables["HOME"] = home.path
         let toolDir = (path as NSString).deletingLastPathComponent
         variables["PATH"] = ([toolDir] + searchPaths).joined(separator: ":")
         return try Self.execute(path, arguments, environment: variables, mergeErrors: true,

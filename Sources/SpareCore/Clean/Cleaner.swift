@@ -138,6 +138,9 @@ public struct Cleaner: Sendable {
         } catch CommandError.notFound {
             entry.status = .skipped
             entry.skipReason = .toolNotFound
+        } catch CommandError.disabled {
+            entry.status = .skipped
+            entry.skipReason = .toolsDisabled
         } catch CommandError.timedOut(let tool) {
             entry.status = .failed
             entry.detail = "\(tool) took too long and was stopped"
