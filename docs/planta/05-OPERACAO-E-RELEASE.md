@@ -37,7 +37,7 @@ Este projeto é um app de desktop: não há Docker, Coolify nem servidor. A "ope
 
 ## CI (GitHub Actions)
 
-`.github/workflows/ci.yml`: em `pull_request` e `push` na `main`, `runs-on: macos-latest`, roda `swift build` e `swift test`. Seguindo a política do projeto, o gate oficial é o local: se o Actions estiver indisponível, o merge segue com a evidência do `scripts/check.sh` registrada no PR.
+`.github/workflows/ci.yml`: em cada `pull_request` roda só o barato (gitleaks e checagem de `.env` versionado, em `ubuntu-latest`, cerca de 1 minuto). O gate completo (`scripts/check.sh` em `macos-latest`) roda apenas em `workflow_dispatch`, manual. Seguindo a política do projeto, o gate oficial é o local: se o Actions estiver indisponível, o merge segue com a evidência do `scripts/check.sh` registrada no PR.
 
 ## Rito por fatia
 

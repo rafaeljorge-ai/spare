@@ -41,8 +41,7 @@ Requires macOS 14+ and Swift 6 (Command Line Tools are enough, Xcode is optional
 
 ```
 swift build
-swift test
-scripts/check.sh       # full local gate
+scripts/check.sh       # full local gate (runs the tests)
 scripts/build-app.sh   # builds dist/Spare.app
 ```
 
@@ -112,8 +111,7 @@ Requer macOS 14+ e Swift 6 (as Command Line Tools bastam, o Xcode é opcional).
 
 ```
 swift build
-swift test
-scripts/check.sh       # gate local completo
+scripts/check.sh       # gate local completo (roda os testes)
 scripts/build-app.sh   # gera dist/Spare.app
 ```
 

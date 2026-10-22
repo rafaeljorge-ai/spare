@@ -43,4 +43,32 @@ import SpareTestSupport
         #expect(code == 64)
         #expect(output.text.contains("USAGE"))
     }
+
+    @Test func unknownCommandWritesToErrorStream() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let output = OutputCapture()
+        let errors = OutputCapture()
+        let cli = SpareCLI(environment: .test(home: home.url), write: output.write, writeError: errors.write)
+
+        let code = await cli.run(["explode", "--json"])
+
+        #expect(code == 64)
+        #expect(output.text.isEmpty)
+        #expect(errors.text.contains("Unknown command: explode"))
+    }
+
+    @Test func unreadableDiskFailsOnErrorStream() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let output = OutputCapture()
+        let errors = OutputCapture()
+        let cli = SpareCLI(environment: .test(home: home.url, disk: nil), write: output.write, writeError: errors.write)
+
+        let code = await cli.run(["status", "--json"])
+
+        #expect(code == 1)
+        #expect(output.text.isEmpty)
+        #expect(errors.text.contains("Could not read disk space"))
+    }
 }

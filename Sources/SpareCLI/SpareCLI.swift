@@ -4,10 +4,18 @@ import SpareCore
 public struct SpareCLI: Sendable {
     public let environment: SpareEnvironment
     let write: @Sendable (String) -> Void
+    let writeError: @Sendable (String) -> Void
 
-    public init(environment: SpareEnvironment, write: @escaping @Sendable (String) -> Void) {
+    /// `writeError` receives failures so they never pollute piped stdout (e.g. `--json | jq`).
+    /// It falls back to `write` when omitted.
+    public init(
+        environment: SpareEnvironment,
+        write: @escaping @Sendable (String) -> Void,
+        writeError: (@Sendable (String) -> Void)? = nil
+    ) {
         self.environment = environment
         self.write = write
+        self.writeError = writeError ?? write
     }
 
     public static let usage = """
@@ -33,14 +41,14 @@ public struct SpareCLI: Sendable {
             write(Self.usage)
             return 0
         default:
-            write("Unknown command: \(command)\n\n\(Self.usage)")
+            writeError("Unknown command: \(command)\n\n\(Self.usage)")
             return 64
         }
     }
 
     func status(json: Bool) -> Int32 {
         guard let disk = environment.diskSpace(environment.home) else {
-            write("Could not read disk space")
+            writeError("Could not read disk space")
             return 1
         }
         if json {

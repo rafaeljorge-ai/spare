@@ -5,4 +5,4 @@ All notable changes to this project are documented here. Format: Keep a Changelo
 ## [Unreleased]
 
 ### Added
-- Walking skeleton: disk monitor, `spare status`, menu bar app showing free space, local gates and CI.
+- Walking skeleton: disk monitor, `spare status`, menu bar app showing free space, local gates and a minimal CI (secret scan and `.env` check on PRs, full gate on manual dispatch). CLI errors go to stderr.

@@ -4,9 +4,10 @@
 
 ```
 swift build
-swift test
 scripts/check.sh
 ```
+
+Use `scripts/check.sh` to run the tests: with only Command Line Tools, a plain `swift test` can fail with "plugin for module 'TestingMacros' not found", and the script passes the plugin path for you.
 
 `scripts/check.sh` is the official gate (build, tests, localized strings, app bundle). Every PR must pass it locally; paste the real output in the PR body.
 
