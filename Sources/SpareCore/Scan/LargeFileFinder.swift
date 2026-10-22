@@ -34,6 +34,11 @@ extension LargeFileError: LocalizedError {
 public struct LargeFileSearch: Sendable {
     public let files: [LargeFile]
     public let partial: Bool
+
+    public init(files: [LargeFile], partial: Bool) {
+        self.files = files
+        self.partial = partial
+    }
 }
 
 /// Finds the biggest regular files under a folder. Read-only.
