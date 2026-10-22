@@ -108,7 +108,8 @@ import SpareTestSupport
         for index in 0..<2_200 { try home.file("d\(index % 10)/f\(index).bin", bytes: 8) }
         let seen = LockedBox<[String]>([])
 
-        _ = LargeFileFinder.find(in: home.url, minBytes: 1, limit: 3) { path in seen.mutate { $0.append(path) } }
+        _ = LargeFileFinder.find(in: home.url, minBytes: 1, limit: 3,
+                                  progress: { path in seen.mutate { $0.append(path) } })
 
         #expect(seen.value.count >= 2)
     }
@@ -137,6 +138,31 @@ import SpareTestSupport
         let found = LargeFileFinder.find(in: home.url, minBytes: 100_000, home: home.url)
 
         #expect(found.map(\.url.lastPathComponent) == ["ok.bin"])
+    }
+
+    @Test func newerPackageExtensionsAreSkipped() throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        for dir in ["Win.pvm", "Box.utm", "Song.logicx", "Doc.pages", "Model.mlpackage"] {
+            try home.file("Stuff/\(dir)/disk.bin", bytes: 300_000)
+        }
+        try home.file("Stuff/ok.bin", bytes: 300_000)
+
+        let found = LargeFileFinder.find(in: home.url, minBytes: 100_000, home: home.url)
+
+        #expect(found.map(\.url.lastPathComponent) == ["ok.bin"])
+    }
+
+    @Test func unknownExtensionAskedToThePackagePredicate() throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try home.file("Stuff/Thing.zzbundle/disk.bin", bytes: 300_000)
+        try home.file("Stuff/Plain.zzdir/data.bin", bytes: 300_000)
+
+        let found = LargeFileFinder.find(in: home.url, minBytes: 100_000, home: home.url,
+                                         isPackage: { $0.hasSuffix("Thing.zzbundle") })
+
+        #expect(found.map(\.url.lastPathComponent) == ["data.bin"])
     }
 
     @Test func lastOpenedIsFilledForTheFinalFiles() throws {

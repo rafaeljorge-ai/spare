@@ -19,7 +19,7 @@ extension SpareCLI {
             writeError("--min-mb and --limit must be positive numbers")
             return 64
         }
-        let root = Self.positional(args, valueFlags: valueFlags).first.map { URL(fileURLWithPath: $0) } ?? environment.home
+        let root = Self.positional(args, valueFlags: valueFlags).first.map { absolute($0) } ?? environment.home
         let files: [LargeFile]
         do {
             files = try LargeFileFinder.search(
@@ -75,8 +75,8 @@ extension SpareCLI {
 
     /// Makes a path absolute against the current folder. Paths with `.` or `..` get their folder resolved by the
     /// system (the file itself is never resolved, so a link stays a link and is refused later).
-    static func absolute(_ path: String) -> URL {
-        let url = URL(fileURLWithPath: path)
+    func absolute(_ path: String) -> URL {
+        let url = URL(fileURLWithPath: path, relativeTo: currentDirectory).absoluteURL
         let last = url.lastPathComponent
         guard url.pathComponents.contains(where: { $0 == "." || $0 == ".." }), last != "." && last != ".." else {
             return url
@@ -86,7 +86,7 @@ extension SpareCLI {
 
     private func trash(_ args: [String], json: Bool) -> Int32 {
         let files = Self.option("--trash", in: args).map { path -> LargeFile in
-            let url = Self.absolute(path)
+            let url = absolute(path)
             let values = try? url.resourceValues(forKeys: [.totalFileAllocatedSizeKey, .contentAccessDateKey])
             return LargeFile(url: url, sizeBytes: Int64(values?.totalFileAllocatedSize ?? 0),
                              lastOpened: values?.contentAccessDate)

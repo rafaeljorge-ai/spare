@@ -51,15 +51,17 @@ public enum LargeFileFinder {
     /// Non-throwing form: a bad root gives an empty list. Prefer `search` when the reason matters.
     public static func find(
         in root: URL, minBytes: Int64, limit: Int = 20, home: URL? = nil, includeLibrary: Bool = false,
+        isPackage: (@Sendable (String) -> Bool)? = nil,
         progress: (@Sendable (String) -> Void)? = nil
     ) -> [LargeFile] {
         (try? search(in: root, minBytes: minBytes, limit: limit, home: home, includeLibrary: includeLibrary,
-                     progress: progress))?.files ?? []
+                     isPackage: isPackage, progress: progress))?.files ?? []
     }
 
     /// - Parameter home: the home whose protected folders are skipped; defaults to the current user's home.
     public static func search(
         in root: URL, minBytes: Int64, limit: Int = 20, home: URL? = nil, includeLibrary: Bool = false,
+        isPackage: (@Sendable (String) -> Bool)? = nil,
         progress: (@Sendable (String) -> Void)? = nil
     ) throws -> LargeFileSearch {
         guard limit > 0 else { return LargeFileSearch(files: [], partial: false) }
@@ -72,11 +74,11 @@ public enum LargeFileFinder {
         let home = home ?? FileManager.default.homeDirectoryForCurrentUser
         let pruned = prunedPaths(home: home, includeLibrary: includeLibrary)
         // `fts` walks with one `lstat` per entry and no Foundation objects: about 10 times faster than
-        // `FileManager.enumerator` on a whole home. Links are never followed and other volumes are not entered.
+        // `FileManager.enumerator` on a whole home. Links are never followed; `/Volumes` is skipped explicitly.
         guard let rootPath = strdup(root.path) else { throw LargeFileError.notFound(root.path) }
         defer { free(rootPath) }
         var argv: [UnsafeMutablePointer<CChar>?] = [rootPath, nil]
-        guard let fts = fts_open(&argv, FTS_PHYSICAL | FTS_NOCHDIR | FTS_XDEV, nil)
+        guard let fts = fts_open(&argv, FTS_PHYSICAL | FTS_NOCHDIR, nil)
         else { throw LargeFileError.notFound(root.path) }
         defer { fts_close(fts) }
 
@@ -94,7 +96,7 @@ public enum LargeFileFinder {
             case FTS_D:
                 let path = String(cString: entry.pointee.fts_path)
                 let name = path.split(separator: "/").last.map(String.init) ?? path
-                if skippedNames.contains(name) || pruned.contains(path) || isPackage(name) {
+                if skippedNames.contains(name) || pruned.contains(path) || looksLikePackage(name, path, ask: isPackage) {
                     fts_set(fts, entry, FTS_SKIP)
                 }
             case FTS_F:
@@ -121,16 +123,21 @@ public enum LargeFileFinder {
         "app", "photoslibrary", "photolibrary", "musiclibrary", "tvlibrary", "imovielibrary", "fcpbundle",
         "bundle", "framework", "plugin", "appex", "kext", "xcodeproj", "xcworkspace", "rtfd", "sparsebundle",
         "dsym", "vst", "vst3", "component", "prefpane", "qlgenerator", "mdimporter", "xpc", "saver",
+        "pvm", "utm", "vmwarevm", "logicx", "band", "pages", "numbers", "key", "xcarchive", "mlpackage", "lrdata",
     ]
 
-    static func isPackage(_ name: String) -> Bool {
+    /// Fast path: the known list. Any other folder with an extension is asked to Launch Services
+    /// (`isPackageKey`), so unknown bundles (VMs, project files) are never listed by their insides.
+    static func looksLikePackage(_ name: String, _ path: String, ask: (@Sendable (String) -> Bool)?) -> Bool {
         guard let dot = name.lastIndex(of: "."), dot != name.startIndex else { return false }
-        return packageExtensions.contains(name[name.index(after: dot)...].lowercased())
+        if packageExtensions.contains(name[name.index(after: dot)...].lowercased()) { return true }
+        if let ask { return ask(path) }
+        return (try? URL(fileURLWithPath: path).resourceValues(forKeys: [.isPackageKey]))?.isPackage == true
     }
 
     /// Folders never entered: system prefixes and, for the home, its protected places, the Trash and `Library`.
     static func prunedPaths(home: URL, includeLibrary: Bool) -> Set<String> {
-        var paths = Set(SafetyGuard.systemPrefixes)
+        var paths = Set(SafetyGuard.systemPrefixes + ["/Volumes"])
         var relative = SafetyGuard.criticalInHome + SafetyGuard.neverTrashInHome + [".Trash"]
         if !includeLibrary { relative.append("Library") }
         // The home may be spelled with or without symlinks (/var and /private/var). `standardizedFileURL`

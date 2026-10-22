@@ -156,11 +156,10 @@ import SpareTestSupport
         let home = try TempHome()
         defer { home.remove() }
         try home.file("Movies/a.mov", bytes: 2_000_000)
-        let previous = FileManager.default.currentDirectoryPath
-        defer { FileManager.default.changeCurrentDirectoryPath(previous) }
-        FileManager.default.changeCurrentDirectoryPath(home.path("Movies").path)
+        let tool = SpareCLI(environment: .test(home: home.url), write: OutputCapture().write,
+                            currentDirectory: home.path("Movies"))
 
-        let code = await cli(home, OutputCapture()).run(["large", "--trash", "./a.mov", "--yes"])
+        let code = await tool.run(["large", "--trash", "./a.mov", "--yes"])
 
         #expect(code == 0)
         #expect(!home.exists("Movies/a.mov"))

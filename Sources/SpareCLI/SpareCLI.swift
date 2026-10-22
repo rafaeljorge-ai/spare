@@ -5,14 +5,18 @@ public struct SpareCLI: Sendable {
     public let environment: SpareEnvironment
     let write: @Sendable (String) -> Void
     let writeError: @Sendable (String) -> Void
+    /// Base for relative paths (`--trash ./a.bin`). Injected so tests never change the process folder.
+    let currentDirectory: URL
 
     /// `writeError` receives failures so they never pollute piped stdout (e.g. `--json | jq`).
     /// It falls back to `write` when omitted.
     public init(
         environment: SpareEnvironment,
         write: @escaping @Sendable (String) -> Void,
-        writeError: (@Sendable (String) -> Void)? = nil
+        writeError: (@Sendable (String) -> Void)? = nil,
+        currentDirectory: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
     ) {
+        self.currentDirectory = currentDirectory
         self.environment = environment
         self.write = write
         self.writeError = writeError ?? write
