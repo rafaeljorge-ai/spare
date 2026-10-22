@@ -61,6 +61,8 @@ spare purge [RECORD_ID] [--yes] [--dry-run]
                            Permanently delete the items Spare itself moved to the Trash (the rest of
                            the Trash is never touched). Without --yes it only previews.
 spare history [--json]     Past cleanups
+spare large [PATH] [--min-mb 500] [--limit 20] [--json]   Biggest files under PATH
+spare large --trash FILE [--yes] [--dry-run]   Move chosen files to the Trash, with Undo
 spare help                 Show this help
 ```
 
@@ -145,6 +147,8 @@ spare purge [ID_DA_LIMPEZA] [--yes] [--dry-run]
                            Apaga para sempre só os itens que o próprio Spare mandou para a Lixeira
                            (o resto da Lixeira nunca é tocado). Sem --yes só mostra o que faria.
 spare history [--json]     Limpezas anteriores
+spare large [CAMINHO] [--min-mb 500] [--limit 20] [--json]   Maiores arquivos de uma pasta
+spare large --trash ARQUIVO [--yes] [--dry-run]   Manda arquivos para a Lixeira, com Desfazer
 spare help                 Mostra a ajuda
 ```
 

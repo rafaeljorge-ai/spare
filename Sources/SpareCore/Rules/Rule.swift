@@ -2,6 +2,8 @@ import Foundation
 
 public enum CategoryID: String, Codable, Sendable, CaseIterable, Hashable {
     case devCaches, projectLeftovers, aiTools, appCaches, logs, installers, trash
+    /// Files the user picks on the Large Files screen. No catalog rule uses it.
+    case largeFiles
 }
 
 public enum Safety: String, Codable, Sendable, Hashable {

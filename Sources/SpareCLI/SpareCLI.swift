@@ -31,6 +31,9 @@ public struct SpareCLI: Sendable {
           spare purge [RECORD_ID] [--yes] [--dry-run]   Permanently delete Spare's own items from the Trash
                                      (only a preview without --yes; the rest of the Trash is never touched)
           spare history [--json]     Past cleanups
+          spare large [PATH] [--min-mb 500] [--limit 20] [--json]   Biggest files under PATH (default: home)
+          spare large --trash FILE [--trash FILE] [--yes] [--dry-run]   Move chosen files to the Trash, with Undo
+                                     (only a preview without --yes; --dry-run always previews)
           spare help                 Show this help
         """
 
@@ -57,6 +60,8 @@ public struct SpareCLI: Sendable {
             return purge(Array(args.dropFirst()))
         case "history":
             return history(json: json)
+        case "large":
+            return large(Array(args.dropFirst()), json: json)
         case "help", "--help", "-h":
             write(Self.usage)
             return 0
