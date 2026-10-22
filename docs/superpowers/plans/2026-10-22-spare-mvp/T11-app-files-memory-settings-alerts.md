@@ -532,3 +532,11 @@ git commit -m "feat(app): add files, memory, settings and alerts
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01Vm75dLn7CFX9KJdQqLAxtK"
 ```
+
+## Note from Task 8 (memory): contracts for the Memory screen
+
+- Quitting goes through `ProcessTerminator.terminate(_:processes:currentUID:ownPID:quitter:)`, by pid and only for rows the screen lists. It refuses other users, pid 1, Spare itself (pid, bundle id `ai.rafaeljorge.spare`, name), every ancestor of the current process (terminal and shell) and system paths judged by the live `proc_pidpath`.
+- Default quitter is `SignalQuitter` (SIGTERM). For apps with a bundle, inject a `ProcessQuitter` here that calls `NSRunningApplication(processIdentifier:).terminate()`, so the "Save changes?" dialog can appear; keep SIGTERM for processes without a bundle. Ask for confirmation in the UI before quitting.
+- Listing: use `environment.memoryProcesses` (`ProcessLister.liveLight()`: `ps` only, no `lsof`, no per-app `Bundle(path:)`), never `environment.processes`. `MemoryMonitor.topConsumers` reads bundle ids only for the largest N rows.
+- Cadence: `MemoryMonitor.snapshot()` every 5 s; the consumer list (`memoryProcesses` + `topConsumers`) every 15 s, and only while the Memory section is visible.
+- Memory numbers are approximate (public APIs, resident memory counts shared pages per process); keep that wording in the UI.
