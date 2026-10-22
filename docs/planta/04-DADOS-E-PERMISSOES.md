@@ -24,9 +24,9 @@ Gravação atômica (`Data.write(options: .atomic)`). Arquivo corrompido é reno
   "freeBytesAfter": 30064771072,
   "entries": [
     {
-      "ruleID": "dev.npm",
-      "originalPath": "/Users/x/.npm/_cacache",
-      "trashPath": "/Users/x/.Trash/_cacache",
+      "ruleID": "downloads.installers",
+      "originalPath": "/Users/x/Downloads/Instalador.dmg",
+      "trashPath": "/Users/x/.Trash/Instalador.dmg",
       "action": "trash",
       "sizeBytes": 6764573491,
       "status": "done",
@@ -36,15 +36,15 @@ Gravação atômica (`Data.write(options: .atomic)`). Arquivo corrompido é reno
 }
 ```
 
-`status`: `done`, `skipped`, `failed`, `restored`. `skipReason`: `inUse`, `notFound`, `outsideCatalog`, `protected`, `cancelled`.
+`action`: `delete`, `trash`, `command`, `emptyTrash`. `status`: `done`, `skipped`, `failed`, `restored`, `purged`. `skipReason`: `inUse`, `notFound`, `outsideCatalog`, `protected`, `cancelled`, `toolNotFound`.
 
 ## Permissões do macOS
 
 | Recurso | Precisa? | Quando | Como lidamos |
 |---|---|---|---|
 | Acesso Total ao Disco | Não no MVP | Só seria necessário para `~/Library/Containers` e `Mail` | Fora do escopo; nenhuma regra do MVP depende disso |
-| Pasta Downloads | Sim (pedido automático do macOS) | Regra "Instaladores esquecidos" | Explicação na primeira vez; se negado, a categoria mostra "Sem permissão" e um botão para abrir Ajustes |
-| Notificações | Sim | Alertas de disco e memória | Pedido na primeira execução; se negado, o ícone da barra continua mudando de cor |
+| Pasta Downloads | Sim (pedido automático do macOS) | Regra "Instaladores esquecidos" | O macOS pede na primeira varredura; se negado, a categoria "Instaladores esquecidos" simplesmente não aparece |
+| Notificações | Sim | Alertas de disco e memória | Pedido na primeira execução; se negado, o ícone da barra continua virando alerta |
 | Abrir ao iniciar sessão | Opcional | Ajustes | `SMAppService.mainApp` |
 | Encerrar processos | Não precisa de permissão especial | Tela Memória | Só processos do usuário atual |
 | Privilégio de administrador | Nunca | | O Spare nunca pede senha |
@@ -63,6 +63,6 @@ O app não usa sandbox (requisito para limpar caches de outras ferramentas), por
 |---|---|---|---|---|
 | Scanner | ✅ (só caminhos do catálogo e raízes de projeto) | ❌ | ❌ | ❌ |
 | LargeFileFinder | ✅ (pasta escolhida) | ❌ | ❌ | ❌ |
-| Cleaner | ✅ | ✅ (só itens validados) | ✅ (só comandos do catálogo) | ❌ |
+| Cleaner | ✅ | ✅ (só itens validados; apaga direto só ações `delete`) | ✅ (só comandos do catálogo) | ❌ |
 | ProcessTerminator | ❌ | ❌ | ❌ | ✅ (só do usuário, nunca protegidos) |
 | UI | via motor | via motor, sempre após confirmação | via motor | via motor, sempre após confirmação |

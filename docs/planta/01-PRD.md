@@ -2,7 +2,7 @@
 
 ## Visão
 
-Spare é um app gratuito e open source (MIT) para macOS que mantém o disco e a memória do Mac sob controle, com foco em quem trabalha com IA e vibecoding. Fica na barra de menus, avisa antes de o disco estourar e libera espaço com segurança: tudo passa pela Lixeira e pode ser desfeito.
+Spare é um app gratuito e open source (MIT) para macOS que mantém o disco e a memória do Mac sob controle, com foco em quem trabalha com IA e vibecoding. Fica na barra de menus, avisa antes de o disco estourar e libera espaço com segurança: o que se regenera sozinho (caches, dependências) é apagado na hora para liberar espaço de verdade; o que não se regenera (instaladores, modelos, arquivos grandes) vai para a Lixeira e pode ser desfeito.
 
 ## Problema
 
@@ -17,7 +17,7 @@ Quem usa IA e programa no Mac acumula dezenas de GB de lixo invisível: caches d
 
 1. **Funcional antes de estético.** Interface nativa e limpa do macOS; sem ilustrações 3D nem fundos animados.
 2. **Leve.** Fica aberto o dia todo sem pesar (meta: menos de 60 MB de RAM e CPU perto de 0% em repouso).
-3. **Seguro por padrão.** Só toca no que está no catálogo de regras; prévia antes de qualquer ação; Lixeira em vez de apagar; nunca mexe no que está em uso.
+3. **Seguro por padrão.** Só toca no que está no catálogo de regras; prévia antes de qualquer ação; só apaga direto o que se regenera sozinho, o resto vai para a Lixeira; nunca mexe no que está em uso.
 4. **Linguagem de usuário.** Cada item explica em uma frase o que é e o que acontece se for removido.
 
 ## Escopo do MVP (v0.1.0)
@@ -29,8 +29,8 @@ Quem usa IA e programa no Mac acumula dezenas de GB de lixo invisível: caches d
 | F3 | Analisar tudo | Uma varredura de disco e memória com progresso visível (o que está sendo lido agora) e botão Parar |
 | F4 | Limpeza por categorias | Cartões por categoria com tamanho total, selo de segurança e botões Revisar e Limpar |
 | F5 | Revisão | Lista de itens da categoria com caixa de seleção, tamanho, selo e explicação |
-| F6 | Execução segura | Move para a Lixeira ou roda o comando oficial da ferramenta; pula itens em uso; progresso com Parar |
-| F7 | Resultado e Desfazer | Antes e depois do espaço livre, registro por categoria, Desfazer (restaura da Lixeira) |
+| F6 | Execução segura | Apaga o que se regenera, move o resto para a Lixeira ou roda o comando oficial da ferramenta; pula itens em uso; progresso com Parar |
+| F7 | Resultado e Desfazer | Antes e depois do espaço livre, registro por categoria, Desfazer (restaura da Lixeira) e Liberar agora (apaga da Lixeira só o que o Spare mandou para lá) |
 | F8 | Histórico | Lista das limpezas anteriores com o que foi feito e o que ainda pode ser desfeito |
 | F9 | Maiores arquivos | Escolher pasta (padrão: pasta pessoal), listar os 20 maiores arquivos acima de 500 MB, Mostrar no Finder, Mover para a Lixeira |
 | F10 | Memória | Pressão de memória e os 15 processos que mais consomem, com botão Encerrar (só processos do usuário) |
@@ -58,7 +58,7 @@ Antivírus, atualizador de apps, desinstalador, duplicados e fotos parecidas, li
 
 1. No Mac do autor, "Analisar tudo" encontra pelo menos 20 GB recuperáveis com segurança em menos de 60 segundos.
 2. Nenhum item fora do catálogo é tocado; testes automatizados provam isso com pastas falsas.
-3. Toda remoção por Lixeira pode ser desfeita pelo app.
+3. Toda remoção por Lixeira pode ser desfeita pelo app; apagamento direto só acontece em itens que se regeneram sozinhos.
 4. App pronto em `.dmg` no GitHub Releases, instalável no macOS 14+ seguindo o README.
 
 ## Distribuição

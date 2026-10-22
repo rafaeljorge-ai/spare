@@ -19,13 +19,13 @@ Janela principal (900 × 600, barra lateral)
 ├── Maiores arquivos
 ├── Memória
 ├── Histórico
-└── Ajustes          (também via ⌘,)
+└── Ajustes
 ```
 
 ## Telas
 
 ### T1 · Painel da barra de menus
-- **Título do ícone:** espaço livre arredondado ("15 GB"). Fica laranja abaixo do limite e vermelho abaixo de 5 GB.
+- **Título do ícone:** espaço livre arredondado ("15 GB"). Abaixo do limite, o ícone de disco vira um triângulo de alerta (a barra de menus não aceita cores).
 - **Cartão Disco:** "Macintosh HD · 15 GB livres de 228 GB" + barra de uso + botão **Liberar**.
 - **Cartão Memória:** "Pressão: 50%" + nível (Normal, Atenção, Alta) + botão **Ver**.
 - **Recomendação de hoje:** uma frase e um botão, escolhida por prioridade: (1) disco abaixo do limite → "Há pouco espaço. Analise para liberar." [Analisar]; (2) última análise com mais de 10 GB seguros → "Você pode liberar 23 GB com segurança." [Revisar]; (3) memória alta → "Memória alta. Veja o que está pesando." [Ver]; (4) nada → "Tudo certo por aqui." sem botão.
@@ -49,14 +49,15 @@ Janela principal (900 × 600, barra lateral)
 - Ações por linha: Mostrar no Finder.
 
 ### T5 · Confirmação
-- Folha modal: "Mover 7 itens (12,4 GB) para a Lixeira?" e, quando houver ação por comando, segunda linha "2 caches serão limpos pela própria ferramenta e se regeneram sozinhos". Botões **Cancelar** e **Limpar**. Para a Lixeira do sistema: "Esvaziar a Lixeira? Isso não pode ser desfeito."
+- Folha modal: "Limpar 7 itens (12,4 GB)?" com uma linha por tipo de ação: "Caches e restos que se regeneram sozinhos são apagados de vez para liberar espaço agora." e "3 itens (2 GB) vão para a Lixeira e podem ser desfeitos.". Botões **Cancelar** e **Limpar**. Para a Lixeira do sistema: "Esvaziar a Lixeira não pode ser desfeito." em vermelho.
 
 ### T6 · Progresso
 - Lista dos itens com estado (aguardando, limpando, ✓, pulado com motivo, erro). Botão **Parar** (termina o item atual e para).
 
 ### T7 · Resultado
 - Manchete "Limpeza concluída". Linha grande "15 GB → 28 GB livres".
-- Registro por categoria com tamanho e ✓ (ou motivo de pulo). Botões **Desfazer** (some se nada foi para a Lixeira), **Ver registro completo** (→ Histórico), **OK**.
+- Quando algo foi para a Lixeira: "2 GB estão na Lixeira. O espaço volta quando saírem de lá." com **Desfazer** e **Liberar agora**.
+- Registro por item com tamanho e ✓ (ou motivo de pulo). Botões **Ver histórico**, **OK**.
 
 ### T8 · Maiores arquivos
 - Seletor de pasta (padrão: pasta pessoal) + campo "Maior que [500] MB" + **Procurar**.
