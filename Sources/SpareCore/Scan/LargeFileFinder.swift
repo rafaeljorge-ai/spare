@@ -13,77 +13,129 @@ public struct LargeFile: Codable, Sendable, Identifiable, Hashable {
     }
 }
 
+/// Why a search could not start. A bad root is an error, never an empty result.
+public enum LargeFileError: Error, Equatable, Sendable {
+    case notFound(String)
+    case notAFolder(String)
+    case systemFolder(String)
+}
+
+extension LargeFileError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .notFound(let path): return "No such folder: \(path)"
+        case .notAFolder(let path): return "Not a folder (links are never followed): \(path)"
+        case .systemFolder(let path): return "System folders are never searched: \(path)"
+        }
+    }
+}
+
+/// Result of a search. `partial` is true when it was cancelled before the whole folder was walked.
+public struct LargeFileSearch: Sendable {
+    public let files: [LargeFile]
+    public let partial: Bool
+}
+
 /// Finds the biggest regular files under a folder. Read-only.
 ///
 /// - Never follows symlinks (files, folders or the root itself).
-/// - Does not enter system folders, packages (`.app`, `.photoslibrary`...), `.git`, the Trash or the places
-///   `SafetyGuard.canTrashUserFile` would refuse (keys, Mail, Messages, iCloud Drive).
+/// - Does not enter system folders, packages (`.app`, `.photoslibrary`...), `.git`, the Trash, dependency
+///   folders other categories already cover (`node_modules`, `.venv`, `.next`, `target`, `DerivedData`),
+///   `~/Library` (unless `includeLibrary`) or the places `SafetyGuard.canTrashUserFile` would refuse.
 /// - Keeps only the `limit` biggest files in a small heap, so memory stays flat on a huge home.
 /// - Cancellable: checks `Task.isCancelled` every 1,000 entries (call it from the task you cancel).
 public enum LargeFileFinder {
     static let checkEvery = 1_000
+    static let skippedNames: Set<String> = ["node_modules", ".venv", ".next", "target", "DerivedData", ".git"]
 
-    /// - Parameter home: when given, the protected folders of that home are skipped.
+    /// Non-throwing form: a bad root gives an empty list. Prefer `search` when the reason matters.
     public static func find(
-        in root: URL, minBytes: Int64, limit: Int = 20, home: URL? = nil,
+        in root: URL, minBytes: Int64, limit: Int = 20, home: URL? = nil, includeLibrary: Bool = false,
         progress: (@Sendable (String) -> Void)? = nil
     ) -> [LargeFile] {
-        guard limit > 0 else { return [] }
-        var info = stat()
-        guard lstat(root.path, &info) == 0, (info.st_mode & S_IFMT) == S_IFDIR,
-              !SafetyGuard.isSystemPath(SafetyGuard.resolved(root))
-        else { return [] }
+        (try? search(in: root, minBytes: minBytes, limit: limit, home: home, includeLibrary: includeLibrary,
+                     progress: progress))?.files ?? []
+    }
 
-        let pruned = prunedPaths(home: home)
-        let keys: [URLResourceKey] = [
-            .isRegularFileKey, .isSymbolicLinkKey, .isDirectoryKey, .isPackageKey,
-            .totalFileAllocatedSizeKey, .fileAllocatedSizeKey, .contentAccessDateKey,
-        ]
-        let keySet = Set(keys)
-        guard let enumerator = FileManager.default.enumerator(
-            at: root, includingPropertiesForKeys: keys, options: [.skipsPackageDescendants],
-            errorHandler: { _, _ in true })
-        else { return [] }
+    /// - Parameter home: the home whose protected folders are skipped; defaults to the current user's home.
+    public static func search(
+        in root: URL, minBytes: Int64, limit: Int = 20, home: URL? = nil, includeLibrary: Bool = false,
+        progress: (@Sendable (String) -> Void)? = nil
+    ) throws -> LargeFileSearch {
+        guard limit > 0 else { return LargeFileSearch(files: [], partial: false) }
+        let root = root.standardizedFileURL
+        var info = stat()
+        guard lstat(root.path, &info) == 0 else { throw LargeFileError.notFound(root.path) }
+        guard (info.st_mode & S_IFMT) == S_IFDIR else { throw LargeFileError.notAFolder(root.path) }
+        guard !SafetyGuard.isSystemPath(SafetyGuard.resolved(root)) else { throw LargeFileError.systemFolder(root.path) }
+
+        let home = home ?? FileManager.default.homeDirectoryForCurrentUser
+        let pruned = prunedPaths(home: home, includeLibrary: includeLibrary)
+        // `fts` walks with one `lstat` per entry and no Foundation objects: about 10 times faster than
+        // `FileManager.enumerator` on a whole home. Links are never followed and other volumes are not entered.
+        guard let rootPath = strdup(root.path) else { throw LargeFileError.notFound(root.path) }
+        defer { free(rootPath) }
+        var argv: [UnsafeMutablePointer<CChar>?] = [rootPath, nil]
+        guard let fts = fts_open(&argv, FTS_PHYSICAL | FTS_NOCHDIR | FTS_XDEV, nil)
+        else { throw LargeFileError.notFound(root.path) }
+        defer { fts_close(fts) }
 
         var best = BiggestFiles(limit: limit)
         var visited = 0
-        while true {
-            // Foundation hands back autoreleased URLs: drain them per entry so memory does not grow.
-            let finished: Bool = autoreleasepool {
-                guard let url = enumerator.nextObject() as? URL else { return true }
-                visited += 1
-                if visited % checkEvery == 0 {
-                    if Task.isCancelled { return true }
-                    progress?(url.path)
-                }
-                guard let values = try? url.resourceValues(forKeys: keySet) else { return false }
-                if values.isSymbolicLink == true { return false }
-                if values.isDirectory == true {
-                    if values.isPackage == true || url.lastPathComponent == ".git" || pruned.contains(url.path) {
-                        enumerator.skipDescendants()
-                    }
-                    return false
-                }
-                guard values.isRegularFile == true,
-                      let size = (values.totalFileAllocatedSize ?? values.fileAllocatedSize).map(Int64.init),
-                      size >= minBytes
-                else { return false }
-                best.offer(LargeFile(url: url, sizeBytes: size, lastOpened: values.contentAccessDate))
-                return false
+        var partial = false
+        while let entry = fts_read(fts) {
+            visited += 1
+            if visited % checkEvery == 0 {
+                if Task.isCancelled { partial = true; break }
+                progress?(String(cString: entry.pointee.fts_path))
             }
-            if finished { break }
+            if entry.pointee.fts_level == 0 { continue }
+            switch Int32(entry.pointee.fts_info) {
+            case FTS_D:
+                let path = String(cString: entry.pointee.fts_path)
+                let name = path.split(separator: "/").last.map(String.init) ?? path
+                if skippedNames.contains(name) || pruned.contains(path) || isPackage(name) {
+                    fts_set(fts, entry, FTS_SKIP)
+                }
+            case FTS_F:
+                guard let info = entry.pointee.fts_statp?.pointee, (info.st_mode & S_IFMT) == S_IFREG else { continue }
+                // Allocated size, like Finder's "size on disk" (sparse files and clones count what they use).
+                let size = Int64(info.st_blocks) * 512
+                if size >= minBytes {
+                    let url = URL(fileURLWithPath: String(cString: entry.pointee.fts_path))
+                    best.offer(LargeFile(url: url, sizeBytes: size, lastOpened: nil))
+                }
+            default:
+                break
+            }
         }
-        return best.sorted()
+        let files = best.sorted().map { file in
+            LargeFile(url: file.url, sizeBytes: file.sizeBytes,
+                      lastOpened: (try? file.url.resourceValues(forKeys: [.contentAccessDateKey]))?.contentAccessDate)
+        }
+        return LargeFileSearch(files: files, partial: partial)
     }
 
-    /// Folders never entered: system prefixes and, with a home, its protected places and the Trash.
-    static func prunedPaths(home: URL?) -> Set<String> {
+    /// Bundle folders that behave as one file in Finder; their insides are never listed.
+    static let packageExtensions: Set<String> = [
+        "app", "photoslibrary", "photolibrary", "musiclibrary", "tvlibrary", "imovielibrary", "fcpbundle",
+        "bundle", "framework", "plugin", "appex", "kext", "xcodeproj", "xcworkspace", "rtfd", "sparsebundle",
+        "dsym", "vst", "vst3", "component", "prefpane", "qlgenerator", "mdimporter", "xpc", "saver",
+    ]
+
+    static func isPackage(_ name: String) -> Bool {
+        guard let dot = name.lastIndex(of: "."), dot != name.startIndex else { return false }
+        return packageExtensions.contains(name[name.index(after: dot)...].lowercased())
+    }
+
+    /// Folders never entered: system prefixes and, for the home, its protected places, the Trash and `Library`.
+    static func prunedPaths(home: URL, includeLibrary: Bool) -> Set<String> {
         var paths = Set(SafetyGuard.systemPrefixes)
-        guard let home else { return paths }
-        let relative = SafetyGuard.criticalInHome + SafetyGuard.neverTrashInHome + [".Trash"]
+        var relative = SafetyGuard.criticalInHome + SafetyGuard.neverTrashInHome + [".Trash"]
+        if !includeLibrary { relative.append("Library") }
         // The home may be spelled with or without symlinks (/var and /private/var). `standardizedFileURL`
         // would rewrite one spelling into the other, so the spellings are built with `realpath` instead.
-        var bases = [home.path]
+        var bases = [home.standardizedFileURL.path]
         if let real = realpath(home.path, nil) {
             bases.append(String(cString: real))
             free(real)

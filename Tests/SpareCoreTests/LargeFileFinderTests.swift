@@ -113,6 +113,77 @@ import SpareTestSupport
         #expect(seen.value.count >= 2)
     }
 
+    @Test func libraryIsSkippedUnlessIncluded() throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try home.file("Library/Application Support/Big/data.bin", bytes: 300_000)
+        try home.file("Movies/ok.mov", bytes: 300_000)
+
+        let skipped = try LargeFileFinder.search(in: home.url, minBytes: 100_000, home: home.url)
+        let included = try LargeFileFinder.search(in: home.url, minBytes: 100_000, home: home.url, includeLibrary: true)
+
+        #expect(skipped.files.map(\.url.lastPathComponent) == ["ok.mov"])
+        #expect(Set(included.files.map(\.url.lastPathComponent)) == ["ok.mov", "data.bin"])
+    }
+
+    @Test func dependencyFoldersAreSkippedByName() throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        for dir in ["node_modules", ".venv", ".next", "target", "DerivedData"] {
+            try home.file("proj/\(dir)/blob.bin", bytes: 300_000)
+        }
+        try home.file("proj/src/ok.bin", bytes: 300_000)
+
+        let found = LargeFileFinder.find(in: home.url, minBytes: 100_000, home: home.url)
+
+        #expect(found.map(\.url.lastPathComponent) == ["ok.bin"])
+    }
+
+    @Test func lastOpenedIsFilledForTheFinalFiles() throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try home.file("a.bin", bytes: 300_000)
+
+        let found = LargeFileFinder.find(in: home.url, minBytes: 100_000, home: home.url)
+
+        #expect(found.first?.lastOpened != nil)
+    }
+
+    @Test func badRootsAreErrors() throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let file = try home.file("a.bin", bytes: 10)
+        #expect(throws: LargeFileError.self) { try LargeFileFinder.search(in: home.path("nope"), minBytes: 1) }
+        #expect(throws: LargeFileError.self) { try LargeFileFinder.search(in: file, minBytes: 1) }
+        #expect(throws: LargeFileError.self) { try LargeFileFinder.search(in: URL(fileURLWithPath: "/System"), minBytes: 1) }
+    }
+
+    @Test func cancelledSearchIsPartial() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        for index in 0..<2_500 { try home.file("d\(index % 25)/f\(index).bin", bytes: 8) }
+        let task = Task { () -> LargeFileSearch in
+            while !Task.isCancelled { await Task.yield() }
+            return try LargeFileFinder.search(in: home.url, minBytes: 1, limit: 5_000, home: home.url)
+        }
+        task.cancel()
+        #expect(try await task.value.partial)
+        let full = try LargeFileFinder.search(in: home.url, minBytes: 1, limit: 5_000, home: home.url)
+        #expect(!full.partial)
+    }
+
+    @Test func refusesTrashGitAndTrashesFolders() throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let paths = [".Trash/old.bin", "proj/.git/objects/pack.bin"]
+        let files = try paths.map { LargeFile(url: try home.file($0, bytes: 300_000), sizeBytes: 300_000, lastOpened: nil) }
+
+        let record = LargeFileCleaner(environment: .test(home: home.url)).trash(files)
+
+        for path in paths { #expect(home.exists(path)) }
+        #expect(record.entries.allSatisfy { $0.skipReason == .protected })
+    }
+
     @Test func trashingRecordsAnUndoableCleanup() throws {
         let home = try TempHome()
         defer { home.remove() }

@@ -2,7 +2,7 @@ import Foundation
 import SpareCore
 
 extension SpareCLI {
-    /// `spare large [PATH] [--min-mb N] [--limit N]` lists the biggest files (read-only).
+    /// `spare large [PATH] [--min-mb N] [--limit N] [--include-library]` lists the biggest files (read-only).
     /// `spare large --trash FILE... [--yes] [--dry-run]` moves chosen files to the Trash, recorded in the history
     /// so `spare undo` works. Like `clean`, it only previews without `--yes`, and `--dry-run` always previews.
     func large(_ args: [String], json: Bool) -> Int32 {
@@ -20,7 +20,15 @@ extension SpareCLI {
             return 64
         }
         let root = Self.positional(args, valueFlags: valueFlags).first.map { URL(fileURLWithPath: $0) } ?? environment.home
-        let files = LargeFileFinder.find(in: root, minBytes: minMB * 1_000_000, limit: limit, home: environment.home)
+        let files: [LargeFile]
+        do {
+            files = try LargeFileFinder.search(
+                in: root, minBytes: minMB * 1_000_000, limit: limit, home: environment.home,
+                includeLibrary: args.contains("--include-library")).files
+        } catch {
+            writeError(error.localizedDescription)
+            return 66
+        }
         if json {
             write(Self.encode(files))
         } else {
@@ -45,9 +53,40 @@ extension SpareCLI {
         return result
     }
 
+    /// A previewed file, with whether the guard would refuse it.
+    private struct Preview: Encodable {
+        let url: URL
+        let sizeBytes: Int64
+        let lastOpened: Date?
+        let isProtected: Bool
+
+        init(file: LargeFile, isProtected: Bool) {
+            url = file.url
+            sizeBytes = file.sizeBytes
+            lastOpened = file.lastOpened
+            self.isProtected = isProtected
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case url, sizeBytes, lastOpened
+            case isProtected = "protected"
+        }
+    }
+
+    /// Makes a path absolute against the current folder. Paths with `.` or `..` get their folder resolved by the
+    /// system (the file itself is never resolved, so a link stays a link and is refused later).
+    static func absolute(_ path: String) -> URL {
+        let url = URL(fileURLWithPath: path)
+        let last = url.lastPathComponent
+        guard url.pathComponents.contains(where: { $0 == "." || $0 == ".." }), last != "." && last != ".." else {
+            return url
+        }
+        return url.deletingLastPathComponent().resolvingSymlinksInPath().appendingPathComponent(last)
+    }
+
     private func trash(_ args: [String], json: Bool) -> Int32 {
         let files = Self.option("--trash", in: args).map { path -> LargeFile in
-            let url = URL(fileURLWithPath: path)
+            let url = Self.absolute(path)
             let values = try? url.resourceValues(forKeys: [.totalFileAllocatedSizeKey, .contentAccessDateKey])
             return LargeFile(url: url, sizeBytes: Int64(values?.totalFileAllocatedSize ?? 0),
                              lastOpened: values?.contentAccessDate)
@@ -56,7 +95,7 @@ extension SpareCLI {
             let guardian = SafetyGuard(environment: environment)
             let total = files.reduce(Int64(0)) { $0 + $1.sizeBytes }
             if json {
-                write(Self.encode(files))
+                write(Self.encode(files.map { Preview(file: $0, isProtected: !guardian.canTrashUserFile($0.url)) }))
             } else {
                 write("Would move \(files.count) file(s), \(ByteFormat.string(total)), to the Trash:")
                 for file in files {

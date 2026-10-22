@@ -124,4 +124,45 @@ import SpareTestSupport
         #expect(home.exists(".ssh/id_ed25519"))
         #expect(errors.text.contains("protected"))
     }
+
+    @Test func badRootIsAnErrorOnStderr() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let output = OutputCapture()
+        let errors = OutputCapture()
+
+        let code = await cli(home, output, errors: errors).run(["large", home.path("nope").path])
+
+        #expect(code != 0)
+        #expect(output.text.isEmpty)
+        #expect(!errors.text.isEmpty)
+    }
+
+    @Test func previewJSONMarksProtectedFiles() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let key = try home.file(".ssh/id_ed25519", bytes: 2_000_000)
+        let ok = try home.file("Movies/a.mov", bytes: 2_000_000)
+        let output = OutputCapture()
+
+        let code = await cli(home, output).run(["large", "--trash", key.path, "--trash", ok.path, "--json"])
+
+        #expect(code == 0)
+        let items = try #require(JSONSerialization.jsonObject(with: Data(output.text.utf8)) as? [[String: Any]])
+        #expect(items.map { $0["protected"] as? Bool } == [true, false])
+    }
+
+    @Test func relativeTrashPathWorks() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try home.file("Movies/a.mov", bytes: 2_000_000)
+        let previous = FileManager.default.currentDirectoryPath
+        defer { FileManager.default.changeCurrentDirectoryPath(previous) }
+        FileManager.default.changeCurrentDirectoryPath(home.path("Movies").path)
+
+        let code = await cli(home, OutputCapture()).run(["large", "--trash", "./a.mov", "--yes"])
+
+        #expect(code == 0)
+        #expect(!home.exists("Movies/a.mov"))
+    }
 }
