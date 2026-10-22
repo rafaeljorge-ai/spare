@@ -14,10 +14,11 @@ import SpareTestSupport
         let code = await cli.run(["status", "--json"])
 
         #expect(code == 0)
-        struct Status: Decodable { let disk: DiskSpace }
+        struct Status: Decodable { let disk: DiskSpace; let memory: MemorySnapshot? }
         let status = try JSONDecoder().decode(Status.self, from: Data(output.text.utf8))
         #expect(status.disk.freeBytes == 10_000_000_000)
         #expect(status.disk.totalBytes == 100_000_000_000)
+        #expect(status.memory != nil)
     }
 
     @Test func statusTextIsHumanReadable() async throws {
@@ -30,6 +31,7 @@ import SpareTestSupport
 
         #expect(code == 0)
         #expect(output.text.contains("Free:"))
+        #expect(output.text.contains("Memory"))
     }
 
     @Test func unknownCommandFailsWithUsage() async throws {

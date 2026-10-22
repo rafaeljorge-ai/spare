@@ -9,6 +9,8 @@ extension SpareEnvironment {
         projectRoots: [URL] = [],
         disk: DiskSpace? = DiskSpace(freeBytes: 10_000_000_000, totalBytes: 100_000_000_000),
         processes: [RunningProcess] = [],
+        memory: MemorySnapshot? = MemorySnapshot(
+            totalBytes: 16_000_000_000, usedBytes: 8_000_000_000, compressedBytes: 1_000_000_000, level: .normal),
         commandRunner: any CommandRunning = RecordingCommandRunner(),
         processListingFails: Bool = false,
         now: @escaping @Sendable () -> Date = { Date() }
@@ -21,6 +23,11 @@ extension SpareEnvironment {
             now: now,
             diskSpace: { _ in disk },
             processes: {
+                if processListingFails { throw ProcessListingError(message: "test") }
+                return processes
+            },
+            memory: { memory },
+            memoryProcesses: {
                 if processListingFails { throw ProcessListingError(message: "test") }
                 return processes
             },

@@ -96,6 +96,14 @@ public enum ProcessLister {
         }
     }
 
+    /// Light listing for the Memory screen: one `ps` call, no `lsof`, no bundle lookups (`appBundleID` and
+    /// `cwd` stay nil). Throws when `ps` fails.
+    public static func liveLight(psPath: String = "/bin/ps") throws -> [RunningProcess] {
+        guard let comm = run(psPath, ["-axww", "-o", "pid=,uid=,rss=,comm="], timeout: commandTimeout), !comm.isEmpty
+        else { throw ProcessListingError(message: "Could not list running processes") }
+        return parse(comm: comm, args: "", resolvePath: executablePath(ofPid:))
+    }
+
     /// Runs a tool and returns its standard output; nil when it cannot start or exceeds `timeout` seconds
     /// (it is then terminated). The exit status is ignored: `lsof` exits 1 on harmless warnings.
     static func run(_ executable: String, _ arguments: [String], timeout: TimeInterval) -> String? {

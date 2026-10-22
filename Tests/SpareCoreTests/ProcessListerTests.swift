@@ -149,4 +149,11 @@ import Testing
         let expected = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).resolvingSymlinksInPath().path
         #expect(mine?.cwd.map { URL(fileURLWithPath: $0).resolvingSymlinksInPath().path } == expected)
     }
+
+    @Test func lightListingNeedsOnlyPsAndSkipsBundleLookups() throws {
+        let processes = try ProcessLister.liveLight()
+
+        #expect(processes.contains { $0.pid == ProcessInfo.processInfo.processIdentifier })
+        #expect(processes.allSatisfy { $0.appBundleID == nil && $0.cwd == nil })
+    }
 }

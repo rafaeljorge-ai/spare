@@ -26,7 +26,7 @@ public struct SpareCLI: Sendable {
         spare: keep your Mac's disk and memory in check
 
         USAGE:
-          spare status [--json]      Free disk space
+          spare status [--json]      Free disk space and memory
           spare scan [--json] [--category ID]   Preview what can be freed (changes nothing)
           spare rules                Rule IDs for clean
           spare clean --rule ID [--rule ID] [--yes] [--dry-run]   Clean the items of these rules
@@ -39,6 +39,7 @@ public struct SpareCLI: Sendable {
                                      (~/Library is skipped unless --include-library)
           spare large --trash FILE [--trash FILE] [--yes] [--dry-run]   Move chosen files to the Trash, with Undo
                                      (only a preview without --yes; --dry-run always previews)
+          spare memory [--json]      Memory pressure and top consumers (approximate: shared memory is counted per process)
           spare help                 Show this help
         """
 
@@ -67,6 +68,8 @@ public struct SpareCLI: Sendable {
             return history(json: json)
         case "large":
             return large(Array(args.dropFirst()), json: json)
+        case "memory":
+            return memory(json: json)
         case "help", "--help", "-h":
             write(Self.usage)
             return 0
@@ -81,10 +84,44 @@ public struct SpareCLI: Sendable {
             writeError("Could not read disk space")
             return 1
         }
+        let memory = environment.memory()
         if json {
-            write(Self.encode(StatusOutput(disk: disk)))
+            write(Self.encode(StatusOutput(disk: disk, memory: memory)))
         } else {
             write("Free: \(ByteFormat.string(disk.freeBytes)) of \(ByteFormat.string(disk.totalBytes))")
+            if let memory { write(Self.memoryLine(memory)) }
+        }
+        return 0
+    }
+
+    static func memoryLine(_ memory: MemorySnapshot) -> String {
+        "Memory (approx.): \(ByteFormat.string(memory.usedBytes)) of \(ByteFormat.string(memory.totalBytes)) used (pressure: \(memory.level.rawValue))"
+    }
+
+    // MARK: Memory
+
+    func listProcesses() -> [RunningProcess]? {
+        do {
+            return try environment.memoryProcesses()
+        } catch {
+            writeError("Could not list running processes")
+            return nil
+        }
+    }
+
+    func memory(json: Bool) -> Int32 {
+        guard let processes = listProcesses() else { return 1 }
+        let snapshot = environment.memory()
+        let consumers = MemoryMonitor.topConsumers(
+            processes: processes, currentUID: getuid(), ownPID: ProcessInfo.processInfo.processIdentifier)
+        if json {
+            write(Self.encode(MemoryOutput(snapshot: snapshot, consumers: consumers)))
+            return 0
+        }
+        if let snapshot { write(Self.memoryLine(snapshot)) }
+        write("Top consumers (approximate: shared memory is counted in every process that uses it):")
+        for consumer in consumers {
+            write("  ~\(ByteFormat.string(consumer.bytes))  \(consumer.name)  pids: \(consumer.pids.map(String.init).joined(separator: ","))")
         }
         return 0
     }
@@ -318,4 +355,10 @@ public struct SpareCLI: Sendable {
 
 struct StatusOutput: Codable {
     let disk: DiskSpace
+    let memory: MemorySnapshot?
+}
+
+struct MemoryOutput: Codable {
+    let snapshot: MemorySnapshot?
+    let consumers: [MemoryConsumer]
 }

@@ -48,7 +48,7 @@ scripts/build-app.sh   # builds dist/Spare.app
 ## CLI usage
 
 ```
-spare status [--json]      Free disk space
+spare status [--json]      Free disk space and memory
 spare scan [--json] [--category ID]   Preview what can be freed (changes nothing)
 spare rules                List rule IDs
 spare clean --rule ID [--rule ID] [--yes] [--dry-run] [--json]
@@ -63,6 +63,8 @@ spare purge [RECORD_ID] [--yes] [--dry-run]
 spare history [--json]     Past cleanups
 spare large [PATH] [--min-mb 500] [--limit 20] [--json]   Biggest files under PATH
 spare large --trash FILE [--yes] [--dry-run]   Move chosen files to the Trash, with Undo
+spare memory [--json]      Memory pressure and top consumers (approximate: built from public APIs,
+                           shared memory is counted in every process that uses it)
 spare help                 Show this help
 ```
 
@@ -149,6 +151,8 @@ spare purge [ID_DA_LIMPEZA] [--yes] [--dry-run]
 spare history [--json]     Limpezas anteriores
 spare large [CAMINHO] [--min-mb 500] [--limit 20] [--json]   Maiores arquivos de uma pasta
 spare large --trash ARQUIVO [--yes] [--dry-run]   Manda arquivos para a Lixeira, com Desfazer
+spare memory [--json]      Pressão de memória e maiores consumidores (aproximado: APIs públicas,
+                           memória compartilhada é contada em cada processo que a usa)
 spare help                 Mostra a ajuda
 ```
 
