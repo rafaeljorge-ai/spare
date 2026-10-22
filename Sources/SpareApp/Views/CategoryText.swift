@@ -15,6 +15,7 @@ extension CategoryID {
         case .logs: LocalizedStringKey("Logs")
         case .installers: LocalizedStringKey("Forgotten installers")
         case .trash: LocalizedStringKey("Trash")
+        case .largeFiles: LocalizedStringKey("Large files")
         }
     }
 
@@ -27,6 +28,7 @@ extension CategoryID {
         case .logs: LocalizedStringKey("Old diagnostic logs.")
         case .installers: LocalizedStringKey("Installers in Downloads older than 30 days. Go to the Trash.")
         case .trash: LocalizedStringKey("Emptying the Trash cannot be undone.")
+        case .largeFiles: LocalizedStringKey("Files you picked on the Large Files screen.")
         }
     }
 
@@ -39,6 +41,7 @@ extension CategoryID {
         case .logs: "doc.text.fill"
         case .installers: "arrow.down.circle.fill"
         case .trash: "trash.fill"
+        case .largeFiles: "doc.fill"
         }
     }
 
@@ -51,6 +54,7 @@ extension CategoryID {
         case .logs: .gray
         case .installers: .pink
         case .trash: .orange
+        case .largeFiles: .teal
         }
     }
 }

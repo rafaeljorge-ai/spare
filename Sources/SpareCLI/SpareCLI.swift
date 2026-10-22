@@ -5,14 +5,18 @@ public struct SpareCLI: Sendable {
     public let environment: SpareEnvironment
     let write: @Sendable (String) -> Void
     let writeError: @Sendable (String) -> Void
+    /// Base for relative paths (`--trash ./a.bin`). Injected so tests never change the process folder.
+    let currentDirectory: URL
 
     /// `writeError` receives failures so they never pollute piped stdout (e.g. `--json | jq`).
     /// It falls back to `write` when omitted.
     public init(
         environment: SpareEnvironment,
         write: @escaping @Sendable (String) -> Void,
-        writeError: (@Sendable (String) -> Void)? = nil
+        writeError: (@Sendable (String) -> Void)? = nil,
+        currentDirectory: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
     ) {
+        self.currentDirectory = currentDirectory
         self.environment = environment
         self.write = write
         self.writeError = writeError ?? write
@@ -31,6 +35,10 @@ public struct SpareCLI: Sendable {
           spare purge [RECORD_ID] [--yes] [--dry-run]   Permanently delete Spare's own items from the Trash
                                      (only a preview without --yes; the rest of the Trash is never touched)
           spare history [--json]     Past cleanups
+          spare large [PATH] [--min-mb 500] [--limit 20] [--include-library] [--json]   Biggest files under PATH (default: home)
+                                     (~/Library is skipped unless --include-library)
+          spare large --trash FILE [--trash FILE] [--yes] [--dry-run]   Move chosen files to the Trash, with Undo
+                                     (only a preview without --yes; --dry-run always previews)
           spare memory [--json]      Memory pressure and top consumers (approximate: shared memory is counted per process)
           spare help                 Show this help
         """
@@ -58,6 +66,8 @@ public struct SpareCLI: Sendable {
             return purge(Array(args.dropFirst()))
         case "history":
             return history(json: json)
+        case "large":
+            return large(Array(args.dropFirst()), json: json)
         case "memory":
             return memory(json: json)
         case "help", "--help", "-h":

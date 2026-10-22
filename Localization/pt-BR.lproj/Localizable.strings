@@ -16,6 +16,8 @@
 "Logs" = "Logs";
 "Forgotten installers" = "Instaladores esquecidos";
 "Trash" = "Lixeira";
+"Large files" = "Arquivos grandes";
+"Files you picked on the Large Files screen." = "Arquivos que você escolheu na tela Maiores arquivos.";
 "Package manager caches. They rebuild themselves when needed." = "Caches de gerenciadores de pacotes. Se regeneram sozinhos quando precisar.";
 "Dependencies of projects untouched for a while. Reinstall with one command." = "Dependências de projetos parados há um tempo. Reinstala com um comando.";
 "Downloaded models and runtimes. Review: they download again if you use them." = "Modelos e runtimes baixados. Revise: baixam de novo se você usar.";

@@ -65,11 +65,14 @@ if kill -0 "$APP_PID" 2> /dev/null; then
     exit 1
 fi
 
+# Retina captures are huge: keep them at most 1200 px wide.
+sips -Z 1200 "$OUT"/*.png > /dev/null
+
 status=0
 for name in 1-panel 2-overview-idle 3-overview-scanning 4-overview-done; do
     file="$OUT/$name.png"
     # A blank window renders as a tiny PNG; real screens are well above this.
-    if [ ! -f "$file" ] || [ "$(stat -f %z "$file")" -lt 20000 ]; then
+    if [ ! -f "$file" ] || [ "$(stat -f %z "$file")" -lt 10000 ]; then
         echo "missing or blank: $file" >&2
         status=1
     else
