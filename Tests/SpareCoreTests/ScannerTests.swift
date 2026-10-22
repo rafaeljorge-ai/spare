@@ -137,4 +137,26 @@ import SpareTestSupport
         #expect(report.items.map(\.ruleID) == ["project.nodeModules"])
         #expect(report.items.first?.safety == .safe)
     }
+
+    @Test func marksItemsInUse() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        try home.file(".npm/_npx/abc/node_modules/mcp/index.js", bytes: 10_000)
+        try home.file(".npm/_npx/def/node_modules/old/index.js", bytes: 10_000)
+        try home.file(".npm/_npx/ghi/node_modules/cwd/index.js", bytes: 10_000)
+        let mcp = RunningProcess(pid: 9, uid: 501, rssBytes: 1, executablePath: "/opt/homebrew/bin/node",
+                                 commandLine: "node \(home.path(".npm/_npx/abc").path)/node_modules/mcp/index.js",
+                                 appBundlePath: nil, appBundleID: nil, name: "node")
+        let byCwd = RunningProcess(pid: 8, uid: 501, rssBytes: 1, executablePath: "/opt/homebrew/bin/node",
+                                   commandLine: "node index.js", appBundlePath: nil, appBundleID: nil, name: "node",
+                                   cwd: home.path(".npm/_npx/ghi/node_modules/cwd").path)
+
+        let report = await Scanner(environment: .test(home: home.url, processes: [mcp, byCwd])).scan(categories: [.devCaches])
+        let byName = Dictionary(uniqueKeysWithValues: report.items.map { ($0.url.lastPathComponent, $0.inUseBy) })
+
+        #expect(byName["abc"] == .some("node"))
+        #expect(byName["ghi"] == .some("node"))
+        #expect(byName["def"] == .some(nil))
+        #expect(report.reviewBytes < 20_000)
+    }
 }

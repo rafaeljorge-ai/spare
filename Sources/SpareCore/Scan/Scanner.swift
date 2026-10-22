@@ -29,6 +29,7 @@ public struct Scanner: Sendable {
             }
         }
 
+        let inUse = InUseGuard(processes: environment.processes())
         var pendingPerCategory = Dictionary(grouping: candidates, by: { $0.0.category }).mapValues(\.count)
         var items: [ScanItem] = []
         var completed = 0
@@ -41,9 +42,16 @@ public struct Scanner: Sendable {
                 group.addTask { (rule.category, url.path, Self.measure(rule: rule, url: url)) }
             }
             for _ in 0..<Self.maxConcurrentMeasurements { addNext() }
-            while let (category, path, item) = await group.next() {
+            while let (category, path, measured) = await group.next() {
                 completed += 1
-                if let item { items.append(item) }
+                var item = measured
+                if var found = item {
+                    if let rule = catalog.rule(id: found.ruleID) {
+                        found.inUseBy = inUse.reason(rule: rule, url: found.url)
+                    }
+                    item = found
+                    items.append(found)
+                }
                 pendingPerCategory[category, default: 1] -= 1
                 let finished = pendingPerCategory[category] == 0 ? category : nil
                 if item != nil || finished != nil {
