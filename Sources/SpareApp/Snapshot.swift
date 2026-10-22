@@ -26,7 +26,7 @@ enum Snapshot {
                     appBundlePath: bundle, appBundleID: nil, name: app.0)
             }
         }
-        environment.memoryProcesses = { listing() }
+        environment.memoryProcesses = { listing() + extraMemoryProcesses() }
         // One npx tool is "running" so the in-use state shows up.
         let npx = home.appendingPathComponent(".npm/_npx/eb65ac700b3c4dc9").path
         environment.processes = {
@@ -57,6 +57,8 @@ enum Snapshot {
         try? await Task.sleep(for: .milliseconds(1_200))
         save(MainWindowController.shared.contentView, name: "4-overview-done", into: directory)
 
+        await runTools(model: model, into: directory)
+
         NSApp.terminate(nil)
     }
 
@@ -75,7 +77,7 @@ enum Snapshot {
         window.close()
     }
 
-    private static func save(_ view: NSView?, name: String, into directory: URL) {
+    static func save(_ view: NSView?, name: String, into directory: URL) {
         guard let view, let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
         view.cacheDisplay(in: view.bounds, to: rep)
         try? rep.representation(using: .png, properties: [:])?.write(to: directory.appendingPathComponent("\(name).png"))

@@ -20,6 +20,7 @@ enum Launch {
         }
 
         let model = AppModel()
+        model.startAlerts()
         if let raw = value(after: "--show", in: arguments), let section = AppSection(rawValue: raw) {
             Task {
                 try? await Task.sleep(for: .milliseconds(300))

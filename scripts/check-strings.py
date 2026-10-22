@@ -10,19 +10,25 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 CALLS = (
     r"(?:Text|Button|Label|Toggle|Section|ContentUnavailableView|LocalizedStringKey|"
     r"navigationTitle|help|confirmationDialog|Stepper|Picker|TextField|GroupBox|LabeledContent|"
-    r"Overline|Stat|accessibilityLabel|accessibilityValue|footerButton|unreadable)"
+    r"Overline|Stat|valueStepper|settingRow|accessibilityLabel|accessibilityValue|footerButton|unreadable)"
 )
 PATTERN = re.compile(CALLS + r'\(\s*(?:(?!verbatim\b)\w+:\s*)?"((?:[^"\\]|\\.)*)"')
+# Labeled arguments that carry UI text (`ScreenHeader(title:subtitle:)`, `ToolNotice(text:)`, ...) and
+# `String(localized:)`, used by the notifications.
+LABELED = re.compile(r'\b(?:title|subtitle|confirm|text):\s*"((?:[^"\\]|\\.)*)"')
+LOCALIZED_STRING = re.compile(r'String\(localized:\s*"((?:[^"\\]|\\.)*)"')
 INTERPOLATION = re.compile(r"\\\((?:[^()]|\([^()]*\))*\)")
 
 
 def source_keys():
     keys = set()
     for source in (ROOT / "Sources/SpareApp").rglob("*.swift"):
-        for match in PATTERN.finditer(source.read_text(encoding="utf-8")):
-            key = INTERPOLATION.sub("%@", match.group(1)).replace('\\"', '"')
-            if key.strip():
-                keys.add(key)
+        text = source.read_text(encoding="utf-8")
+        for pattern in (PATTERN, LABELED, LOCALIZED_STRING):
+            for match in pattern.finditer(text):
+                key = INTERPOLATION.sub("%@", match.group(1)).replace('\\"', '"')
+                if key.strip():
+                    keys.add(key)
     return keys
 
 

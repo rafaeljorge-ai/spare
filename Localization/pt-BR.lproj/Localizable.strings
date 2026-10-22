@@ -87,3 +87,63 @@
 "Done" = "Concluído";
 "Disk space" = "Espaço em disco";
 "Low disk space" = "Pouco espaço em disco";
+
+/* Large files */
+"In %@, bigger than %@ MB" = "Em %@, maiores que %@ MB";
+"Bigger than %@ MB" = "Maior que %@ MB";
+"Search" = "Procurar";
+"Searching..." = "Procurando...";
+"Choose a folder and tap Search." = "Escolha uma pasta e toque em Procurar.";
+"No file this big here." = "Nenhum arquivo desse tamanho aqui.";
+"Partial search: stopped before the whole folder was checked." = "Busca parcial: parou antes de olhar a pasta inteira.";
+"That folder no longer exists." = "Essa pasta não existe mais.";
+"That is not a folder, or it is a link. Choose another one." = "Isso não é uma pasta, ou é um atalho. Escolha outra.";
+"System folders are never searched. Choose another folder." = "Pastas do sistema nunca são vasculhadas. Escolha outra pasta.";
+"Opened %@" = "Aberto em %@";
+"Show in Finder" = "Mostrar no Finder";
+"Move to the Trash" = "Mover para a Lixeira";
+"Move to the Trash?" = "Mover para a Lixeira?";
+"It stays in the Trash and in History, so you can undo it." = "Ele fica na Lixeira e no Histórico, então dá para desfazer.";
+"%@ went to the Trash. Undo is also in History." = "%@ foi para a Lixeira. O Desfazer também fica no Histórico.";
+"%@ is back where it was." = "%@ voltou para o lugar de origem.";
+"Nothing was moved. Spare keeps this file as it is." = "Nada foi movido. O Spare deixa este arquivo como está.";
+"%@ stays in the Trash: something may already exist at its old place." = "%@ continua na Lixeira: pode já existir algo no lugar de origem.";
+"Undo" = "Desfazer";
+"Cancel" = "Cancelar";
+"Dismiss" = "Dispensar";
+
+/* Memory */
+"Approximate: memory shared between processes counts for each one." = "Aproximado: a memória compartilhada entre processos conta para cada um.";
+"in use" = "em uso";
+"Compressed: %@" = "Comprimida: %@";
+"%@ processes" = "%@ processos";
+"No app is using notable memory." = "Nenhum app está usando muita memória.";
+"Quit %@?" = "Encerrar %@?";
+"End" = "Encerrar";
+"End now" = "Encerrar agora";
+"The app is asked to quit and may offer to save your work." = "O app é convidado a encerrar e pode oferecer para salvar o seu trabalho.";
+"Unsaved work in this process may be lost." = "Trabalho não salvo neste processo pode ser perdido.";
+"%@ processes will be asked to quit:" = "%@ processos serão convidados a encerrar:";
+"And %@ more." = "E mais %@.";
+"%@ was asked to quit." = "%@ foi convidado a encerrar.";
+"Could not quit %@. It may have closed already." = "Não foi possível encerrar %@. Ele pode já ter fechado.";
+
+/* Settings */
+"Everything stays on your Mac. No account, no internet." = "Tudo fica só no seu Mac. Sem conta, sem internet.";
+"Warn when free space is below" = "Avisar quando o espaço livre ficar abaixo de";
+"%@ GB" = "%@ GB";
+"Warn when memory is high" = "Avisar quando a memória ficar alta";
+"Idle project after" = "Projeto parado após";
+"%@ days" = "%@ dias";
+"Open Spare at login" = "Abrir o Spare ao iniciar sessão";
+"macOS did not allow this now. It usually works once Spare is installed in Applications." = "O macOS não permitiu agora. Costuma funcionar depois que o Spare estiver instalado em Aplicativos.";
+"Project folders" = "Pastas de projetos";
+"Add folder" = "Adicionar pasta";
+"Remove folder" = "Remover pasta";
+"No folder. Idle project leftovers will not be found." = "Nenhuma pasta. Restos de projetos parados não serão encontrados.";
+
+/* Notifications */
+"Your Mac is running out of space" = "Seu Mac está ficando sem espaço";
+"Only %@ left. Open Spare to free space." = "Restam só %@. Abra o Spare para liberar espaço.";
+"Memory is under pressure" = "A memória está sob pressão";
+"Open Spare to see what is using it." = "Abra o Spare para ver o que está pesando.";
