@@ -82,14 +82,59 @@ final class CallCounter: @unchecked Sendable {
     @Test func commandRunsOncePerRuleAndKeepsFiles() async throws {
         let home = try TempHome()
         defer { home.remove() }
+        let a = try home.directory("Library/Caches/tool/a")
+        let b = try home.directory("Library/Caches/tool/b")
+        // No shipped rule has several items with a command, so use a catalog that does.
+        let rule = Rule(id: "test.tool", category: .devCaches,
+                        kind: .children(parent: "Library/Caches/tool", excludingPrefixes: [], extensions: nil, minAgeDays: nil),
+                        safety: .safe, action: .command(executable: "tool", arguments: ["prune"]))
+        let runner = RecordingCommandRunner()
+        func forged(_ url: URL) -> ScanItem {
+            ScanItem(ruleID: rule.id, category: rule.category, url: url, sizeBytes: 1_000, safety: .safe)
+        }
+
+        let record = await Cleaner(environment: .test(home: home.url, commandRunner: runner),
+                                   catalog: RuleCatalog(rules: [rule]))
+            .clean([forged(a), forged(b)])
+
+        #expect(runner.calls == ["tool prune"])
+        #expect(record.entries.map(\.status) == [.done, .done])
+        #expect(home.exists("Library/Caches/tool/a"))
+    }
+
+    @Test func samePathTwiceInOneRunIsProcessedOnce() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
         let cache = try home.directory(".npm/_cacache")
+        let logs = try home.directory("Library/Logs/SomeApp")
         let runner = RecordingCommandRunner()
 
         let record = await Cleaner(environment: .test(home: home.url, commandRunner: runner))
-            .clean([item("dev.npm", cache), item("dev.npm", cache)])
+            .clean([item("dev.npm", cache), item("apps.logs", logs), item("dev.npm", cache), item("apps.logs", logs)])
 
         #expect(runner.calls == ["npm cache clean --force"])
+        #expect(record.entries.map(\.originalPath) == [cache.path, logs.path])
         #expect(record.entries.map(\.status) == [.done, .done])
+        #expect(record.cleanedBytes == 2_000)
+    }
+
+    @Test func homebrewCacheIsDeletedNeverCleanedByTheBrewCommand() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let cache = try home.directory("Library/Caches/Homebrew")
+        try home.file("Library/Caches/Homebrew/downloads/bottle.tar.gz")
+        let runner = RecordingCommandRunner()
+
+        let rule = try #require(catalog.rule(id: "dev.homebrew"))
+        let record = await Cleaner(environment: .test(home: home.url, commandRunner: runner))
+            .clean([item("dev.homebrew", cache)])
+
+        #expect(rule.safety == .safe)
+        #expect(rule.action == .delete)
+        #expect(!catalog.rules.contains { if case .command("brew", _) = $0.action { true } else { false } })
+        #expect(runner.calls.isEmpty)
+        #expect(record.entries.map(\.status) == [.done])
+        #expect(!home.exists("Library/Caches/Homebrew"))
     }
 
     @Test func missingToolIsSkippedNotFailed() async throws {
@@ -284,6 +329,60 @@ final class CallCounter: @unchecked Sendable {
         #expect(ahead.entries.first?.status == .done)
     }
 
+    @Test func emptyTrashRunsBeforeAnyTrashAction() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        // The fake Trash is the very folder the emptyTrash rule targets, like the real ~/.Trash.
+        let trash = try home.directory(".Trash")
+        try home.file(".Trash/old.zip")
+        let installer = try home.file("Downloads/old.dmg", modified: daysAgo(60))
+        var environment = SpareEnvironment.test(home: home.url)
+        environment.trash = FolderTrash(folder: trash)
+
+        let record = await Cleaner(environment: environment)
+            .clean([item("downloads.installers", installer), item("system.trash", trash)])
+
+        // Entries keep the order of the request; the work order is what changed.
+        #expect(record.entries.map(\.action) == [.trash, .emptyTrash])
+        #expect(record.entries.map(\.status) == [.done, .done])
+        let entry = try #require(record.undoableEntries.first)
+        let trashed = try #require(entry.trashPath)
+        #expect(FileManager.default.fileExists(atPath: trashed))
+        #expect(!home.exists(".Trash/old.zip"))
+        #expect(record.trashedBytes == 1_000)
+    }
+
+    @Test func pathsWithDotComponentsAreRefused() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let logs = try home.directory("Library/Logs/SomeApp")
+        let dotted = URL(fileURLWithPath: logs.path + "/../SomeApp")
+
+        let record = await Cleaner(environment: .test(home: home.url)).clean([item("apps.logs", dotted)])
+
+        #expect(record.entries.first?.status == .skipped)
+        #expect(record.entries.first?.skipReason == .outsideCatalog)
+        #expect(home.exists("Library/Logs/SomeApp"))
+    }
+
+    @Test func deleteKeepsTheTargetOfASymlinkInsideTheFolder() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let outside = try TempHome()
+        defer { outside.remove() }
+        try outside.file("data/important.db")
+        let logs = try home.directory("Library/Logs/SomeApp")
+        try home.file("Library/Logs/SomeApp/a.log")
+        try FileManager.default.createSymbolicLink(at: logs.appendingPathComponent("link"),
+                                                   withDestinationURL: outside.path("data"))
+
+        let record = await Cleaner(environment: .test(home: home.url)).clean([item("apps.logs", logs)])
+
+        #expect(record.entries.first?.status == .done)
+        #expect(!home.exists("Library/Logs/SomeApp"))
+        #expect(outside.exists("data/important.db"))
+    }
+
     // MARK: Project artifacts
 
     @Test func idleProjectArtifactIsDeleted() async throws {
@@ -338,6 +437,22 @@ final class CallCounter: @unchecked Sendable {
             .clean([item("project.nodeModules", artifact)])
 
         #expect(record.entries.first?.skipReason == .projectActive)
+    }
+
+    @Test func outermostProjectRootDecidesWhereIdlenessIsMeasured() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        // Projetos is one big repository; Projetos/mono is also listed as a root (listed first).
+        try home.file("Projetos/.git/HEAD", bytes: 10, modified: daysAgo(60))
+        let artifact = try makeProject(home, "Projetos/mono/app")
+        try home.file("Projetos/other/index.js")  // touched today, elsewhere in the same repository
+        let roots = [home.path("Projetos/mono"), home.path("Projetos")]
+
+        let record = await Cleaner(environment: .test(home: home.url, projectRoots: roots))
+            .clean([item("project.nodeModules", artifact)])
+
+        #expect(record.entries.first?.skipReason == .projectActive)
+        #expect(home.exists("Projetos/mono/app/node_modules/lib/index.js"))
     }
 
     // MARK: Record

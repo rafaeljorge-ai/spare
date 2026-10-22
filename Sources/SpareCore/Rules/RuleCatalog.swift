@@ -41,7 +41,7 @@ public struct RuleCatalog: Sendable {
         Rule(id: "dev.cargo", category: .devCaches, kind: .path(".cargo/registry/cache"), safety: .safe,
              action: .delete, inUse: InUseHint(processNames: ["cargo"])),
         Rule(id: "dev.homebrew", category: .devCaches, kind: .path("Library/Caches/Homebrew"), safety: .safe,
-             action: .command(executable: "brew", arguments: ["cleanup", "--prune=all"])),
+             action: .delete, inUse: InUseHint(processNames: ["brew"])),
         Rule(id: "dev.xcodeDerivedData", category: .devCaches,
              kind: .path("Library/Developer/Xcode/DerivedData"), safety: .safe,
              action: .delete, inUse: InUseHint(processNames: ["Xcode", "xcodebuild"])),
