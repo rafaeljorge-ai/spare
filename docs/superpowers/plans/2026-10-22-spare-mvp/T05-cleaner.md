@@ -695,3 +695,5 @@ git commit -m "feat(core): add guarded cleaner
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01Vm75dLn7CFX9KJdQqLAxtK"
 ```
+
+> **Note (from the T03 review):** before every `delete` of a project artifact, the Cleaner must re-check `ProjectScanner.isIdle` for the project (measured at the repository root when there is one). If the project was used again between the scan and the cleanup, skip the item and report the reason.

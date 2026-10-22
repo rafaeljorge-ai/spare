@@ -129,6 +129,7 @@ import SpareTestSupport
         defer { home.remove() }
         try home.file("Projetos/old/package.json", bytes: 10, modified: daysAgo(60))
         try home.file("Projetos/old/node_modules/lib.js", bytes: 30_000)
+        try home.directory("Projetos/old/node_modules", modified: daysAgo(60))
         let environment = SpareEnvironment.test(home: home.url, projectRoots: [home.path("Projetos")])
 
         let report = await Scanner(environment: environment).scan(categories: [.projectLeftovers])

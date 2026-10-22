@@ -59,36 +59,71 @@ public struct ProjectScanner: Sendable {
                 }
                 guard hasManifest else { continue }
 
-                let idle = idleCache[project.path] ?? isIdle(project: project, skipping: artifactNames)
-                idleCache[project.path] = idle
+                // Activity is measured at the whole repository when there is one, so a monorepo
+                // package is only idle if every package is.
+                let measured = repositoryRoot(of: project, within: root) ?? project
+                let idle = idleCache[measured.path] ?? isIdle(project: measured, skipping: artifactNames)
+                idleCache[measured.path] = idle
                 if idle { found[name, default: []].append(url) }
             }
         }
         return found
     }
 
-    /// True when no file outside artifacts and ignored folders changed within `idleDays`.
+    /// Outermost folder from `project` up to `root` (inclusive) that holds a `.git` entry.
+    /// A directory or a file counts, because worktrees and submodules use a `.git` file.
+    func repositoryRoot(of project: URL, within root: URL) -> URL? {
+        let fm = FileManager.default
+        let rootPath = root.standardizedFileURL.path
+        var current = project.standardizedFileURL
+        var outermost: URL?
+        while current.path == rootPath || current.path.hasPrefix(rootPath + "/") {
+            if fm.fileExists(atPath: current.appendingPathComponent(".git").path) { outermost = current }
+            let parent = current.deletingLastPathComponent()
+            if parent.path == current.path { break }
+            current = parent
+        }
+        return outermost
+    }
+
+    /// True when nothing outside ignored folders was modified or created within `idleDays`.
+    /// Artifact folders are not descended into, but their own dates count (fresh `npm install`).
     public func isIdle(project: URL, skipping artifactNames: Set<String>) -> Bool {
         let cutoff = now.addingTimeInterval(-Double(idleDays) * 86_400)
         guard let enumerator = FileManager.default.enumerator(
             at: project,
-            includingPropertiesForKeys: [.isDirectoryKey, .contentModificationDateKey, .isSymbolicLinkKey],
+            includingPropertiesForKeys: Self.activityKeys,
             options: [], errorHandler: { _, _ in true })
         else { return false }
+        let activityKeys = Set(Self.activityKeys)
 
         while let url = enumerator.nextObject() as? URL {
-            let values = try? url.resourceValues(
-                forKeys: [.isDirectoryKey, .contentModificationDateKey, .isSymbolicLinkKey])
+            let values = try? url.resourceValues(forKeys: activityKeys)
             if values?.isDirectory == true {
                 let name = url.lastPathComponent
-                if artifactNames.contains(name) || Self.ignoredForActivity.contains(name) {
+                if Self.ignoredForActivity.contains(name) {
                     enumerator.skipDescendants()
+                } else if artifactNames.contains(name) {
+                    enumerator.skipDescendants()
+                    if isRecent(values, after: cutoff) { return false }
                 }
                 continue
             }
             if values?.isSymbolicLink == true { continue }
-            if let modified = values?.contentModificationDate, modified > cutoff { return false }
+            if isRecent(values, after: cutoff) { return false }
         }
         return true
+    }
+
+    private static let activityKeys: [URLResourceKey] = [
+        .isDirectoryKey, .isSymbolicLinkKey, .contentModificationDateKey, .creationDateKey,
+    ]
+
+    /// Modification or creation date newer than the cutoff. Creation counts because unzipping or
+    /// restoring a backup keeps old modification dates.
+    private func isRecent(_ values: URLResourceValues?, after cutoff: Date) -> Bool {
+        if let modified = values?.contentModificationDate, modified > cutoff { return true }
+        if let created = values?.creationDate, created > cutoff { return true }
+        return false
     }
 }
