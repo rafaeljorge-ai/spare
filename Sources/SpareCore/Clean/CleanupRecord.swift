@@ -23,6 +23,9 @@ public struct CleanupEntry: Codable, Sendable, Identifiable, Hashable {
     public let category: CategoryID
     public let originalPath: String
     public var trashPath: String?
+    /// Device and inode of the item in the Trash, stamped when the cleanup is saved. Undo and purge only
+    /// touch the item if it is still this exact one (a later item with the same name does not match).
+    public var trashIdentity: String?
     public var action: ActionKind
     public let sizeBytes: Int64
     public var status: EntryStatus
@@ -31,12 +34,13 @@ public struct CleanupEntry: Codable, Sendable, Identifiable, Hashable {
     public var detail: String?
 
     public init(ruleID: String, category: CategoryID, originalPath: String, trashPath: String? = nil,
-                action: ActionKind, sizeBytes: Int64, status: EntryStatus,
+                trashIdentity: String? = nil, action: ActionKind, sizeBytes: Int64, status: EntryStatus,
                 skipReason: SkipReason? = nil, detail: String? = nil) {
         self.ruleID = ruleID
         self.category = category
         self.originalPath = originalPath
         self.trashPath = trashPath
+        self.trashIdentity = trashIdentity
         self.action = action
         self.sizeBytes = sizeBytes
         self.status = status

@@ -33,6 +33,11 @@ public struct SpareEnvironment: Sendable {
         self.commandRunner = commandRunner ?? SystemCommandRunner(home: home)
     }
 
+    /// Where Spare keeps its own files (history, settings): `<home>/Library/Application Support/Spare`.
+    public var supportDirectory: URL {
+        home.appendingPathComponent("Library/Application Support/Spare", isDirectory: true)
+    }
+
     /// Real environment for the CLI and the app.
     public static func live(home: URL) -> SpareEnvironment {
         let resolved = home.resolvingSymlinksInPath()

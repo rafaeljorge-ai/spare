@@ -50,10 +50,22 @@ scripts/build-app.sh   # builds dist/Spare.app
 ```
 spare status [--json]      Free disk space
 spare scan [--json] [--category ID]   Preview what can be freed (changes nothing)
+spare rules                List rule IDs
+spare clean --rule ID [--rule ID] [--yes] [--dry-run] [--json]
+                           Clean the items of these rules. Without --yes it only previews;
+                           --dry-run always previews. Items in use are never cleaned.
+spare undo [RECORD_ID] [--dry-run]
+                           Restore trashed items of the last (or given) cleanup; an item whose
+                           original path is taken stays in the Trash and the reason is printed
+spare purge [RECORD_ID] [--yes] [--dry-run]
+                           Permanently delete the items Spare itself moved to the Trash (the rest of
+                           the Trash is never touched). Without --yes it only previews.
+spare history [--json]     Past cleanups
 spare help                 Show this help
 ```
 
-More commands arrive in later tasks.
+Safe first run: `spare scan`, then `spare clean --rule dev.npx` (preview only), then add `--yes`. Cleanups are
+saved in `~/Library/Application Support/Spare/history.json` (folder `0700`, file `0600`).
 
 ## Project docs
 
@@ -122,10 +134,22 @@ scripts/build-app.sh   # gera dist/Spare.app
 ```
 spare status [--json]      Espaço livre em disco
 spare scan [--json] [--category ID]   Mostra o que dá para liberar (não altera nada)
+spare rules                Lista os IDs das regras
+spare clean --rule ID [--rule ID] [--yes] [--dry-run] [--json]
+                           Limpa os itens dessas regras. Sem --yes só mostra o que faria;
+                           --dry-run sempre só mostra. Itens em uso nunca são limpos.
+spare undo [ID_DA_LIMPEZA] [--dry-run]
+                           Devolve os itens da última limpeza (ou da informada) ao lugar original;
+                           se o lugar original estiver ocupado, o item fica na Lixeira e o motivo é mostrado
+spare purge [ID_DA_LIMPEZA] [--yes] [--dry-run]
+                           Apaga para sempre só os itens que o próprio Spare mandou para a Lixeira
+                           (o resto da Lixeira nunca é tocado). Sem --yes só mostra o que faria.
+spare history [--json]     Limpezas anteriores
 spare help                 Mostra a ajuda
 ```
 
-Mais comandos chegam nas próximas tasks.
+Primeiro uso seguro: `spare scan`, depois `spare clean --rule dev.npx` (só prévia), e então acrescente `--yes`.
+O histórico fica em `~/Library/Application Support/Spare/history.json` (pasta `0700`, arquivo `0600`).
 
 ### Documentação do projeto
 

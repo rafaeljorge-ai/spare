@@ -117,7 +117,10 @@ public struct Cleaner: Sendable {
             case .delete:
                 try FileManager.default.removeItem(at: url)
             case .trash:
-                entry.trashPath = try environment.trash.moveToTrash(url).path
+                let moved = try environment.trash.moveToTrash(url)
+                entry.trashPath = moved.path
+                // Stamped right here, so later undo and purge only touch this exact item.
+                entry.trashIdentity = TrashFiles.identity(of: moved.path)
             case .command(let executable, let arguments):
                 let result = try environment.commandRunner.run(executable, arguments)
                 guard result.exitCode == 0 else {
