@@ -12,8 +12,10 @@ struct MenuBarLabel: View {
         } icon: {
             if model.isDiskLow {
                 Image(systemName: "exclamationmark.triangle.fill")
+                    .accessibilityLabel(Text("Low disk space"))
             } else {
                 Image(nsImage: MenuBarIcon.ring(usedFraction: model.disk?.usedFraction ?? 0))
+                    .accessibilityLabel(Text("Disk space"))
             }
         }
         .labelStyle(.titleAndIcon)
@@ -46,8 +48,10 @@ struct MenuPanel: View {
         .foregroundStyle(Ink.primary)
         .frame(width: 340)
         .preferredColorScheme(.dark)
-        .task { await model.watchMemory() }
-        .onAppear { model.refreshDisk() }
+        .background(VisibilityReader { visible in
+            model.setVisible(visible, source: "panel")
+            if visible { model.refreshDisk() }
+        })
     }
 
     // MARK: Cards
@@ -68,6 +72,8 @@ struct MenuPanel: View {
                         Spacer()
                         Button("Free up") { model.show(.cleanup) }.buttonStyle(QuietButton())
                     }
+                } else if !model.diskLoaded {
+                    loadingFigure
                 } else {
                     unreadable(message: "Could not read the disk.") { model.refreshDisk() }
                 }
@@ -94,6 +100,8 @@ struct MenuPanel: View {
                         Spacer()
                         Button("View") { model.show(.memory) }.buttonStyle(QuietButton())
                     }
+                } else if !model.memoryLoaded {
+                    loadingFigure
                 } else {
                     unreadable(message: "Could not read the memory.") { model.refreshMemory() }
                 }
@@ -101,8 +109,28 @@ struct MenuPanel: View {
         }
     }
 
+    /// Dashes where the numbers will be, until the first read arrives.
+    private var loadingFigure: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(verbatim: "-").font(Txt.h3)
+            bar(fraction: 0, tint: Ink.used)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Loading..."))
+    }
+
     @ViewBuilder private var consumerRows: some View {
-        if let consumers = model.consumers, !consumers.isEmpty {
+        if model.consumers == nil && !model.consumersFailed {
+            VStack(spacing: 5) {
+                ForEach(0..<3, id: \.self) { _ in
+                    HStack {
+                        Text(verbatim: "-").font(Txt.caption).foregroundStyle(Ink.tertiary)
+                        Spacer()
+                        Text(verbatim: "-").font(Txt.caption).foregroundStyle(Ink.tertiary)
+                    }
+                }
+            }
+        } else if let consumers = model.consumers, !consumers.isEmpty {
             VStack(spacing: 5) {
                 ForEach(consumers) { consumer in
                     HStack {

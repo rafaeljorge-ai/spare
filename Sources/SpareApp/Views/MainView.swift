@@ -17,6 +17,7 @@ struct MainView: View {
         .foregroundStyle(Ink.primary)
         .frame(width: 1000, height: 660)
         .preferredColorScheme(.dark)
+        .background(VisibilityReader { model.setVisible($0, source: "main") })
     }
 
     @ViewBuilder private var content: some View {

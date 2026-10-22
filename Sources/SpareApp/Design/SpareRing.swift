@@ -1,3 +1,4 @@
+import SpareCore
 import SwiftUI
 
 /// The Spare Ring: the whole disk as one circle. Mint is space you can take back,
@@ -31,6 +32,14 @@ struct SpareRing: View {
         .frame(width: diameter, height: diameter)
         .animation(.easeOut(duration: 0.6), value: safeBytes)
         .animation(.easeOut(duration: 0.6), value: reviewBytes)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private var accessibilityText: Text {
+        let disk = Text("\(ByteFormat.string(freeBytes)) free of \(ByteFormat.string(totalBytes))")
+        guard safeBytes > 0 else { return disk }
+        return disk + Text(verbatim: ". ") + Text("Safe \(ByteFormat.string(safeBytes))")
     }
 
     private func arc(from: Double, to: Double, color: Color) -> some View {

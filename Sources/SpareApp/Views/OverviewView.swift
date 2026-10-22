@@ -103,6 +103,9 @@ struct OverviewView: View {
                     Tile(symbol: done ? "checkmark" : category.symbol, tint: done ? category.tint : Ink.surface2, side: 30)
                         .opacity(done ? 1 : 0.6)
                         .help(category.title)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(Text(category.title))
+                        .accessibilityValue(done ? Text("Done") : Text("Analyzing..."))
                 }
                 Spacer().frame(width: 16)
                 Button("Stop") { model.cancelScan() }.buttonStyle(QuietButton())

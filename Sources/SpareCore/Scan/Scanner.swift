@@ -32,11 +32,17 @@ public struct Scanner: Sendable {
         }
 
         // A failed listing is not "nothing running": items that need the check become "unknown", never free.
-        let inUse = try? InUseGuard(processes: environment.processes())
+        // Stopped already: skip the listing (`ps` plus `lsof`); the items that need it stay "unknown".
+        let inUse = Task.isCancelled ? nil : (try? InUseGuard(processes: environment.processes()))
         var pendingPerCategory = Dictionary(grouping: candidates, by: { $0.0.category }).mapValues(\.count)
         var items: [ScanItem] = []
         var completed = 0
         let total = candidates.count
+
+        // Categories with nothing to measure are finished from the start, so the UI never waits on them.
+        for category in Set(rules.map(\.category)) where pendingPerCategory[category] == nil {
+            progress(ScanProgress(currentPath: "", completed: 0, total: total, item: nil, finishedCategory: category))
+        }
 
         await withTaskGroup(of: (CategoryID, String, ScanItem?).self) { group in
             var iterator = candidates.makeIterator()

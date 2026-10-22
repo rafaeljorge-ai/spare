@@ -81,3 +81,9 @@
 "Never" = "Nunca";
 "Run the first analysis" = "Faça a primeira análise";
 "Last cleanup" = "Última limpeza";
+
+/* Accessibility and loading */
+"Loading..." = "Carregando...";
+"Done" = "Concluído";
+"Disk space" = "Espaço em disco";
+"Low disk space" = "Pouco espaço em disco";
