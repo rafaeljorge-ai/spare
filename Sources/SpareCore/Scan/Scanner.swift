@@ -19,7 +19,9 @@ public struct Scanner: Sendable {
         let rules = catalog.rules.filter { categories?.contains($0.category) ?? true }
 
         let projectRules = rules.filter { if case .projectArtifact = $0.kind { true } else { false } }
-        let projectFound = projectRules.isEmpty ? [:] : projectArtifacts(for: projectRules)
+        let projectFound = projectRules.isEmpty ? [:] : projectArtifacts(for: projectRules) { path in
+            progress(ScanProgress(currentPath: path, completed: 0, total: 0, item: nil, finishedCategory: nil))
+        }
         var candidates: [(Rule, URL)] = []
         for rule in rules where !Task.isCancelled {
             if case .projectArtifact(let name, _) = rule.kind {
@@ -117,13 +119,13 @@ public struct Scanner: Sendable {
         }
     }
 
-    func projectArtifacts(for rules: [Rule]) -> [String: [URL]] {
+    func projectArtifacts(for rules: [Rule], progress: (String) -> Void = { _ in }) -> [String: [URL]] {
         var named: [String: [String]] = [:]
         for rule in rules {
             if case .projectArtifact(let name, let manifests) = rule.kind { named[name] = manifests }
         }
         return ProjectScanner(roots: environment.projectRoots, idleDays: environment.projectIdleDays,
-                              now: environment.now()).artifacts(named: named)
+                              now: environment.now()).artifacts(named: named, progress: progress)
     }
 
     func projectArtifacts() -> [String: [URL]] {
