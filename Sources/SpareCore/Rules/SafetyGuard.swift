@@ -79,7 +79,9 @@ public struct SafetyGuard: Sendable {
         let path = Self.resolved(url)
         guard !Self.isSystemPath(path), path.hasPrefix(home.path + "/") else { return false }
         let relative = String(path.dropFirst(home.path.count + 1))
-        if Self.isInside(relative, any: Self.criticalInHome + Self.neverTrashInHome) { return false }
+        if Self.isInside(relative, any: Self.criticalInHome + Self.neverTrashInHome + [".Trash"]) { return false }
+        // Repository internals and volume Trashes are never the user's to pick.
+        if relative.split(separator: "/").contains(where: { $0 == ".git" || $0 == ".Trashes" }) { return false }
         // Refuse the protected/critical folders themselves and any folder that contains one.
         let sensitive = Self.criticalInHome + Self.protectedInHome
         return !sensitive.contains { $0 == relative || $0.hasPrefix(relative + "/") }
