@@ -47,6 +47,8 @@ public enum RuleKind: Codable, Sendable, Hashable {
 
 public enum SkipReason: String, Codable, Sendable, Hashable {
     case inUse, notFound, outsideCatalog, protected, cancelled, toolNotFound
+    /// A project leftover whose project was used again after the scan.
+    case projectActive
 }
 
 public struct Rule: Codable, Sendable, Identifiable, Hashable {
