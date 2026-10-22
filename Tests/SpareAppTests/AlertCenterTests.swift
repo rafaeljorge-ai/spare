@@ -31,7 +31,32 @@ final class TestClock: @unchecked Sendable {
 
     func makeCenter(_ clock: TestClock) -> (AlertCenter, RecordingPoster) {
         let poster = RecordingPoster()
-        return (AlertCenter(poster: poster, now: { clock.now }), poster)
+        return (AlertCenter(poster: poster, defaults: freshDefaults(), now: { clock.now }), poster)
+    }
+
+    /// A throwaway defaults domain: tests never touch the real one.
+    func freshDefaults() -> UserDefaults {
+        UserDefaults(suiteName: "spare-tests-\(UUID().uuidString)")!
+    }
+
+    @Test func cooldownSurvivesARelaunch() {
+        let clock = TestClock()
+        let defaults = freshDefaults()
+        let first = RecordingPoster()
+        AlertCenter(poster: first, defaults: defaults, now: { clock.now })
+            .evaluate(disk: low, memory: memory(.critical), settings: SpareSettings())
+        #expect(first.alerts.count == 2)
+
+        // A new process (same defaults) five minutes later: nothing repeats.
+        clock.advance(300)
+        let second = RecordingPoster()
+        let relaunched = AlertCenter(poster: second, defaults: defaults, now: { clock.now })
+        relaunched.evaluate(disk: low, memory: memory(.critical), settings: SpareSettings())
+        #expect(second.alerts.isEmpty)
+
+        clock.advance(AlertPolicy.diskCooldown)
+        relaunched.evaluate(disk: low, memory: memory(.critical), settings: SpareSettings())
+        #expect(second.alerts.map(\.kind) == [.disk, .memory])
     }
 
     @Test func startAsksForPermissionOnce() {

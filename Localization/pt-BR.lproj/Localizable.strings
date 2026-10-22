@@ -147,3 +147,8 @@
 "Only %@ left. Open Spare to free space." = "Restam só %@. Abra o Spare para liberar espaço.";
 "Memory is under pressure" = "A memória está sob pressão";
 "Open Spare to see what is using it." = "Abra o Spare para ver o que está pesando.";
+
+/* Corrections (round 1) */
+"%@ was asked to quit. %@ changed since you looked and were left alone." = "%@ foi convidado a encerrar. %@ mudaram desde que você olhou e foram deixados em paz.";
+"Nothing was quit: %@ changed since you looked. Look at the list again." = "Nada foi encerrado: %@ mudou desde que você olhou. Veja a lista de novo.";
+"%@ went to the Trash, but it could not be recorded in History, so there is no Undo. Find it in the Trash." = "%@ foi para a Lixeira, mas não deu para registrar no Histórico, então não há Desfazer. Procure na Lixeira.";

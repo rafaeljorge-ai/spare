@@ -41,7 +41,7 @@ extension Snapshot {
         }
 
         model.show(.memory)
-        await model.memoryScreen.refresh()
+        await model.refreshConsumers()
         try? await Task.sleep(for: .milliseconds(900))
         save(MainWindowController.shared.contentView, name: "t11-memory", into: directory)
 

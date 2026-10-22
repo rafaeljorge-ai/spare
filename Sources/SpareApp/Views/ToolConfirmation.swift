@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A confirmation card over a dimmed screen, in the prototype's style. Escape cancels, Return confirms.
+/// A confirmation card over a dimmed screen, in the prototype's style. Escape cancels; Return confirms only a non-destructive action.
 struct ToolConfirmation<Content: View>: View {
     let title: LocalizedStringKey
     let confirm: LocalizedStringKey
@@ -21,9 +21,15 @@ struct ToolConfirmation<Content: View>: View {
                     Button("Cancel", action: onCancel)
                         .buttonStyle(QuietButton())
                         .keyboardShortcut(.cancelAction)
-                    Button(action: onConfirm) { Text(confirm) }
-                        .buttonStyle(QuietButton(tint: destructive ? Ink.busy : Ink.primary))
-                        .keyboardShortcut(.defaultAction)
+                    // Return never confirms a destructive action: it has to be clicked.
+                    if destructive {
+                        Button(action: onConfirm) { Text(confirm) }
+                            .buttonStyle(QuietButton(tint: Ink.busy))
+                    } else {
+                        Button(action: onConfirm) { Text(confirm) }
+                            .buttonStyle(QuietButton())
+                            .keyboardShortcut(.defaultAction)
+                    }
                 }
             }
             .padding(24)

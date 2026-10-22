@@ -140,6 +140,21 @@ import SpareTestSupport
         #expect(model.outcome == .restored("big.mov"))
     }
 
+    @Test func aFailedHistoryWriteIsToldAndOffersNoUndo() async throws {
+        let home = try TempHome()
+        let url = try home.file("Movies/big.mov", bytes: 1000)
+        // A plain file where the support folder should be: the History cannot be written.
+        try home.file("Library/Application Support", bytes: 1)
+        let model = makeModel(home)
+        model.ask(file(url, 1000))
+        await model.confirmTrash()
+
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+        #expect(model.outcome == .trashedUnrecorded(file(url, 1000)))
+        await model.undoLast()  // nothing to undo: the outcome stays
+        #expect(model.outcome == .trashedUnrecorded(file(url, 1000)))
+    }
+
     @Test func aMissingFileIsNotMovedAndLeavesNoHistory() async throws {
         let home = try TempHome()
         let ghost = file(home.path("Movies/gone.mov"), 1000)

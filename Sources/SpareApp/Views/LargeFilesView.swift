@@ -100,6 +100,10 @@ struct LargeFilesView: View {
             ToolNotice(symbol: "checkmark.circle.fill", tint: Ink.spare,
                        text: "\(file.url.lastPathComponent) went to the Trash. Undo is also in History.",
                        action: ("Undo", { Task { await tool.undoLast() } }), onDismiss: { tool.dismissOutcome() })
+        case .trashedUnrecorded(let file):
+            ToolNotice(symbol: "exclamationmark.triangle.fill", tint: Ink.review,
+                       text: "\(file.url.lastPathComponent) went to the Trash, but it could not be recorded in History, so there is no Undo. Find it in the Trash.",
+                       onDismiss: { tool.dismissOutcome() })
         case .restored(let name):
             ToolNotice(symbol: "arrow.uturn.backward.circle.fill", tint: Ink.spare,
                        text: "\(name) is back where it was.", onDismiss: { tool.dismissOutcome() })

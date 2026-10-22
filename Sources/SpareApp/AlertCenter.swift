@@ -26,15 +26,27 @@ protocol AlertPosting: AnyObject {
 final class AlertCenter {
     private let poster: any AlertPosting
     private let now: @Sendable () -> Date
-    private var lastDiskAlert: Date?
-    private var lastMemoryAlert: Date?
+    private let defaults: UserDefaults
+    /// Persisted, so relaunching the app (or a login item start) does not alert again inside the cooldown.
+    private var lastDiskAlert: Date? {
+        didSet { defaults.set(lastDiskAlert, forKey: Self.diskKey) }
+    }
+    private var lastMemoryAlert: Date? {
+        didSet { defaults.set(lastMemoryAlert, forKey: Self.memoryKey) }
+    }
+
+    static let diskKey = "spare.lastDiskAlert"
+    static let memoryKey = "spare.lastMemoryAlert"
     var onOpen: ((AlertKind) -> Void)? {
         didSet { poster.onOpen = onOpen }
     }
 
-    init(poster: any AlertPosting, now: @escaping @Sendable () -> Date = { Date() }) {
+    init(poster: any AlertPosting, defaults: UserDefaults = .standard, now: @escaping @Sendable () -> Date = { Date() }) {
         self.poster = poster
+        self.defaults = defaults
         self.now = now
+        lastDiskAlert = defaults.object(forKey: Self.diskKey) as? Date
+        lastMemoryAlert = defaults.object(forKey: Self.memoryKey) as? Date
     }
 
     func start() {

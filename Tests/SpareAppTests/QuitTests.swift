@@ -45,6 +45,32 @@ import SpareCore
         #expect(prompt.lines[0].command.hasSuffix("..."))
     }
 
+    @Test func showsOnlyTheExecutableAndTheFirstArgument() {
+        let command = "/opt/homebrew/bin/node server.js --port 3000 --api-key=abc123 --token zzz"
+        #expect(QuitPrompt.display(command) == "/opt/homebrew/bin/node server.js")
+        #expect(QuitPrompt.display("node --inspect app.js --flag") == "node app.js")
+        #expect(QuitPrompt.display("tool") == "tool")
+    }
+
+    @Test func aSecretInTheFirstArgumentIsMasked() {
+        #expect(QuitPrompt.display("psql postgres://user:hunter2@db.local/app") == "psql postgres://***@db.local/app")
+        let prompt = QuitPrompt.make(
+            consumer: consumer([30, 31]),
+            processes: [30: process(30, command: "node worker.js --token abc"), 31: process(31, command: "node --x")])
+        #expect(prompt.lines.allSatisfy { !$0.command.contains("abc") })
+    }
+
+    @Test func redactMasksKeyValueFlagsAndCredentialUrls() {
+        #expect(QuitPrompt.redact("run --api-key=abc") == "run --api-key=***")
+        #expect(QuitPrompt.redact("run --token abc --port 80") == "run --token *** --port 80")
+        #expect(QuitPrompt.redact("run -p abc") == "run -p abc")
+        #expect(QuitPrompt.redact("run -secret abc") == "run -secret ***")
+        #expect(QuitPrompt.redact("run --PASSWORD=x --client-cred y") == "run --PASSWORD=*** --client-cred ***")
+        #expect(QuitPrompt.redact("conn postgres://u:p@h") == "conn postgres://***@h")
+        #expect(QuitPrompt.redact("conn https://host/path") == "conn https://host/path")
+        #expect(QuitPrompt.redact("run --port=80") == "run --port=80")
+    }
+
     @Test func aPidMissingFromTheListingStillShows() {
         let prompt = QuitPrompt.make(consumer: consumer([20, 21]), processes: [20: process(20)])
         #expect(prompt.lines.map(\.pid).sorted() == [20, 21])

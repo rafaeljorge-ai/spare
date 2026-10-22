@@ -10,7 +10,7 @@ extension AppModel {
     }
 
     func makeMemoryScreenModel() -> MemoryScreenModel {
-        MemoryScreenModel(environment: { [unowned self] in environment })
+        MemoryScreenModel(sampler: consumerSampler, environment: { [unowned self] in environment })
     }
 
     func makeAlertCenter() -> AlertCenter {

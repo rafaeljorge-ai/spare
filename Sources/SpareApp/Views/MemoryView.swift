@@ -34,7 +34,6 @@ struct MemoryView: View {
             }
         }
         .animation(.easeOut(duration: 0.15), value: tool.pending)
-        .background(VisibilityReader { tool.setVisible($0) })
     }
 
     // MARK: Pressure
@@ -91,7 +90,7 @@ struct MemoryView: View {
         } else if tool.failed {
             VStack(spacing: 12) {
                 ToolEmptyState(symbol: "exclamationmark.triangle.fill", text: "Could not list the apps using memory.")
-                Button("Try again") { Task { await tool.refresh() } }.buttonStyle(QuietButton())
+                Button("Try again") { Task { await tool.sampler.sampleIfDue(force: true) } }.buttonStyle(QuietButton())
             }
         } else {
             ToolEmptyState(symbol: "checkmark.circle", text: "No app is using notable memory.")
@@ -146,12 +145,25 @@ struct MemoryView: View {
 
     @ViewBuilder private func outcomeNotice(_ outcome: MemoryScreenModel.Outcome) -> some View {
         switch outcome {
-        case .asked(let name):
-            ToolNotice(symbol: "checkmark.circle.fill", tint: Ink.spare,
-                       text: "\(name) was asked to quit.", onDismiss: { tool.dismissOutcome() })
-        case .failed(let name):
-            ToolNotice(symbol: "exclamationmark.triangle.fill", tint: Ink.review,
-                       text: "Could not quit \(name). It may have closed already.", onDismiss: { tool.dismissOutcome() })
+        case .asked(let name, let skipped):
+            if skipped > 0 {
+                ToolNotice(symbol: "exclamationmark.triangle.fill", tint: Ink.review,
+                           text: "\(name) was asked to quit. \(String(skipped)) changed since you looked and were left alone.",
+                           onDismiss: { tool.dismissOutcome() })
+            } else {
+                ToolNotice(symbol: "checkmark.circle.fill", tint: Ink.spare,
+                           text: "\(name) was asked to quit.", onDismiss: { tool.dismissOutcome() })
+            }
+        case .failed(let name, let skipped):
+            if skipped > 0 {
+                ToolNotice(symbol: "exclamationmark.triangle.fill", tint: Ink.review,
+                           text: "Nothing was quit: \(name) changed since you looked. Look at the list again.",
+                           onDismiss: { tool.dismissOutcome() })
+            } else {
+                ToolNotice(symbol: "exclamationmark.triangle.fill", tint: Ink.review,
+                           text: "Could not quit \(name). It may have closed already.",
+                           onDismiss: { tool.dismissOutcome() })
+            }
         }
     }
 }

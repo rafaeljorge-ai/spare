@@ -17,6 +17,8 @@ final class LargeFilesModel: ObservableObject {
         case trashed(LargeFile, recordID: UUID)
         case restored(String)
         case notMoved(String)
+        /// In the Trash, but the History write failed: there is no record, so no Undo is offered.
+        case trashedUnrecorded(LargeFile)
         case undoFailed(String)
     }
 
@@ -128,9 +130,13 @@ final class LargeFilesModel: ObservableObject {
             outcome = .notMoved(record.entries.first?.skipReason?.rawValue ?? record.entries.first?.detail ?? "failed")
             return
         }
-        try? HistoryStore(directory: environment.supportDirectory).append(record)
         files.removeAll { $0.id == file.id }
-        outcome = .trashed(file, recordID: record.id)
+        do {
+            try HistoryStore(directory: environment.supportDirectory).append(record)
+            outcome = .trashed(file, recordID: record.id)
+        } catch {
+            outcome = .trashedUnrecorded(file)
+        }
         didChangeDisk()
     }
 

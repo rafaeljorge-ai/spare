@@ -46,6 +46,7 @@ final class AppModel: ObservableObject {
     private var sampler: SamplingGate?
     // Tools (Task 11): each screen keeps its own state in a small model, created on first use.
     lazy var largeFiles = makeLargeFilesModel()
+    lazy var consumerSampler = ConsumerSampler(environment: { [unowned self] in environment })
     lazy var memoryScreen = makeMemoryScreenModel()
     lazy var settingsScreen = SettingsModel()
     lazy var alerts = makeAlertCenter()
@@ -106,15 +107,11 @@ final class AppModel: ObservableObject {
         memoryLoaded = true
     }
 
-    /// Reads the biggest memory users off the main actor (it runs `ps`).
+    /// Panel rows: the top of the shared listing (`ConsumerSampler`, read every 15 s off the main actor).
     func refreshConsumers() async {
-        let environment = environment
-        let result = await Task.detached(priority: .utility) {
-            try? MemoryMonitor.topConsumers(
-                processes: environment.memoryProcesses(), currentUID: getuid(), ownPID: getpid(), limit: 3)
-        }.value
-        consumers = result ?? []
-        consumersFailed = result == nil
+        await consumerSampler.sampleIfDue()
+        consumers = consumerSampler.consumers.map { Array($0.prefix(3)) }
+        consumersFailed = consumerSampler.failed
     }
 
     /// A window or the panel became visible or hidden. Memory is sampled every 5 s only while one is visible.
