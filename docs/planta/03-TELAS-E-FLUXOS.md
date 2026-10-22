@@ -13,7 +13,7 @@ Barra de menus (ícone + "15 GB")
     ├── [Analisar tudo]                    → Janela › Visão geral (varredura iniciada)
     └── Rodapé: [Abrir Spare] [Ajustes] [Sair]
 
-Janela principal (900 × 600, barra lateral)
+Janela principal (1000 × 660, barra de título oculta, barra lateral)
 ├── Visão geral      (Analisar tudo)
 ├── Limpeza          (cartões → Revisão → Progresso → Resultado)
 ├── Maiores arquivos

@@ -15,6 +15,7 @@ let package = Package(
         .executableTarget(name: "SpareApp", dependencies: ["SpareCore"]),
         .target(name: "SpareTestSupport", dependencies: ["SpareCore"]),
         .testTarget(name: "SpareCoreTests", dependencies: ["SpareCore", "SpareTestSupport"]),
+        .testTarget(name: "SpareAppTests", dependencies: ["SpareApp", "SpareCore", "SpareTestSupport"]),
         .testTarget(name: "SpareCLITests", dependencies: ["SpareCLI", "SpareCore", "SpareTestSupport"]),
     ]
 )
