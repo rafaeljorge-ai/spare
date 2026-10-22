@@ -14,6 +14,8 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/SpareApp" "$APP/Contents/MacOS/Spare"
 sed "s/__VERSION__/$VERSION/g" Packaging/Info.plist > "$APP/Contents/Info.plist"
 cp -R Localization/*.lproj "$APP/Contents/Resources/"
+scripts/make-icon.sh > /dev/null
+cp Packaging/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 codesign --force --sign - "$APP"
 codesign --verify --strict "$APP"
