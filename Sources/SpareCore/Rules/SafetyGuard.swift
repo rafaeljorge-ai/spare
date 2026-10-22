@@ -4,6 +4,8 @@ import Foundation
 public struct SafetyGuard: Sendable {
     public let home: URL
     public let projectRoots: [URL]
+    let catalog: RuleCatalog
+    let now: @Sendable () -> Date
 
     static let systemPrefixes = ["/System", "/usr", "/bin", "/sbin", "/Applications", "/Library", "/opt", "/cores"]
     static let protectedInHome = [
@@ -12,7 +14,10 @@ public struct SafetyGuard: Sendable {
     ]
     static let criticalInHome = [".ssh", ".gnupg", ".aws", ".kube", "Library/Keychains"]
 
-    public init(home: URL, projectRoots: [URL]) {
+    public init(home: URL, projectRoots: [URL], catalog: RuleCatalog = .standard,
+                now: @escaping @Sendable () -> Date = { Date() }) {
+        self.catalog = catalog
+        self.now = now
         self.home = home.resolvingSymlinksInPath().standardizedFileURL
         self.projectRoots = projectRoots.map { $0.resolvingSymlinksInPath().standardizedFileURL }
     }
@@ -33,15 +38,42 @@ public struct SafetyGuard: Sendable {
         switch rule.kind {
         case .path(let rulePath):
             return relative == rulePath ? nil : .outsideCatalog
-        case .children(let parent, let excluded, _, _):
+        case .children(let parent, let excluded, let extensions, let minAgeDays):
             let name = (relative as NSString).lastPathComponent
             let itemParent = (relative as NSString).deletingLastPathComponent
             guard itemParent == parent, !name.hasPrefix(".") else { return .outsideCatalog }
-            return excluded.contains(where: { name.hasPrefix($0) }) ? .outsideCatalog : nil
-        case .projectArtifact(let directoryName, _):
+            if excluded.contains(where: { name.hasPrefix($0) }) { return .outsideCatalog }
+            // Items owned by a more specific `.path` rule never fall under a generic one.
+            if claimedPaths().contains(where: { $0 == path || $0.hasPrefix(path + "/") }) { return .outsideCatalog }
+            if let extensions, !extensions.contains((name as NSString).pathExtension.lowercased()) {
+                return .outsideCatalog
+            }
+            if let minAgeDays {
+                let cutoff = now().addingTimeInterval(-Double(minAgeDays) * 86_400)
+                let date = (try? URL(fileURLWithPath: path)
+                    .resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+                guard let date, date < cutoff else { return .outsideCatalog }
+            }
+            return nil
+        case .projectArtifact(let directoryName, let manifests):
             guard (path as NSString).lastPathComponent == directoryName else { return .outsideCatalog }
-            let insideRoot = projectRoots.contains { path.hasPrefix($0.path + "/") }
-            return insideRoot ? nil : .outsideCatalog
+            if path.split(separator: "/").contains(".git") { return .protected }
+            guard projectRoots.contains(where: { path.hasPrefix($0.path + "/") }) else { return .outsideCatalog }
+            let parent = (path as NSString).deletingLastPathComponent
+            let hasManifest = manifests.contains {
+                FileManager.default.fileExists(atPath: (parent as NSString).appendingPathComponent($0))
+            }
+            return hasManifest ? nil : .outsideCatalog
+        }
+    }
+
+    /// Resolved paths owned by specific `.path` rules (same normalization as the Scanner).
+    func claimedPaths() -> [String] {
+        catalog.rules.compactMap { rule in
+            if case .path(let relative) = rule.kind {
+                return home.appendingPathComponent(relative).resolvingSymlinksInPath().path
+            }
+            return nil
         }
     }
 
@@ -50,7 +82,10 @@ public struct SafetyGuard: Sendable {
         let path = Self.resolved(url)
         guard !Self.isSystemPath(path), path.hasPrefix(home.path + "/") else { return false }
         let relative = String(path.dropFirst(home.path.count + 1))
-        return !Self.isInside(relative, any: Self.criticalInHome) && !Self.criticalInHome.contains(relative)
+        if Self.isInside(relative, any: Self.criticalInHome) { return false }
+        // Refuse the protected/critical folders themselves and any folder that contains one.
+        let sensitive = Self.criticalInHome + Self.protectedInHome
+        return !sensitive.contains { $0 == relative || $0.hasPrefix(relative + "/") }
     }
 
     static func resolved(_ url: URL) -> String {
