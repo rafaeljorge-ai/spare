@@ -21,6 +21,7 @@ enum Launch {
         }
 
         let model = AppModel()
+        model.startAlerts()
         AppDelegate.model = model
         if let raw = value(after: "--show", in: arguments), let section = AppSection(rawValue: raw) {
             Task {

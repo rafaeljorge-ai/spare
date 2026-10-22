@@ -21,6 +21,19 @@ public struct SignalQuitter: ProcessQuitter {
     }
 }
 
+/// Who a pid is right now: its executable and when it started. A recycled pid has a different one.
+public struct ProcessIdentity: Equatable, Sendable {
+    public let path: String
+    public let startSeconds: Int64
+    public let startMicroseconds: Int64
+
+    public init(path: String, startSeconds: Int64, startMicroseconds: Int64) {
+        self.path = path
+        self.startSeconds = startSeconds
+        self.startMicroseconds = startMicroseconds
+    }
+}
+
 public enum ProcessTerminator {
     public static let spareBundleID = "ai.rafaeljorge.spare"
 
@@ -45,7 +58,7 @@ public enum ProcessTerminator {
             guard pid > 1, pid != ownPID, !blocked.contains(pid), let process = byPID[pid],
                   process.uid == currentUID, let live = currentPath(pid),
                   !MemoryMonitor.isSystemPath(live), !MemoryMonitor.isSystemPath(process.executablePath),
-                  !process.executablePath.hasPrefix("/") || live == process.executablePath,
+                  process.executablePath.hasPrefix("/"), live == process.executablePath,
                   !isSpare(process, livePath: live, ownBundle: ownBundle, bundleID: bundleID)
             else { continue }
             if quitter.quit(process) { delivered += 1 }
@@ -77,6 +90,15 @@ public enum ProcessTerminator {
             current = next
         }
         return result
+    }
+
+    /// Live executable path and start time of `pid`; nil when it is gone or cannot be read.
+    public static func identity(of pid: Int32) -> ProcessIdentity? {
+        var info = proc_bsdinfo()
+        let size = Int32(MemoryLayout<proc_bsdinfo>.size)
+        guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size,
+              let path = ProcessLister.executablePath(ofPid: pid) else { return nil }
+        return ProcessIdentity(path: path, startSeconds: Int64(info.pbi_start_tvsec), startMicroseconds: Int64(info.pbi_start_tvusec))
     }
 
     public static func parentPID(of pid: Int32) -> Int32? {

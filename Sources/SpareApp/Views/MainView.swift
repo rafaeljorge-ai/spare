@@ -25,20 +25,9 @@ struct MainView: View {
         case .overview: OverviewView(model: model)
         case .cleanup: CleanupView(model: model)
         case .history: HistoryView(model: model)
-        // Task 11 replaces the placeholder with the remaining screens.
-        default: ComingSoonView(section: model.selection)
-        }
-    }
-}
-
-private struct ComingSoonView: View {
-    let section: AppSection
-
-    var body: some View {
-        VStack(spacing: 14) {
-            Tile(symbol: section.symbol, tint: section.tint, side: 44)
-            Text(section.title).font(Txt.h1)
-            Text("Coming in the next update").font(Txt.body).foregroundStyle(Ink.tertiary)
+        case .largeFiles: LargeFilesView(model: model)
+        case .memory: MemoryView(model: model)
+        case .settings: SettingsView(model: model)
         }
     }
 }

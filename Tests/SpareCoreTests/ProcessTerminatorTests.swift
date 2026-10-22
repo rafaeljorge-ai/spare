@@ -105,6 +105,23 @@ import Testing
         #expect(recorder.quit.isEmpty)
     }
 
+    @Test func refusesAListedPathThatIsNotAbsolute() {
+        // A relative name cannot be matched against the live path, so it is never trusted.
+        let processes = [proc(60, path: "node")]
+
+        let (count, recorder) = run([60], processes, live: { _ in "node" })
+
+        #expect(count == 0)
+        #expect(recorder.quit.isEmpty)
+    }
+
+    @Test func identityOfTheCurrentProcessIsStable() throws {
+        let first = try #require(ProcessTerminator.identity(of: getpid()))
+        #expect(first.path.hasPrefix("/"))
+        #expect(first.startSeconds > 0)
+        #expect(ProcessTerminator.identity(of: getpid()) == first)
+    }
+
     @Test func doesNotCountFailedQuits() {
         let recorder = Recorder()
         recorder.succeeds = false
