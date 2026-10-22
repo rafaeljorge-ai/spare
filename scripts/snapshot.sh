@@ -15,7 +15,8 @@ scripts/build-app.sh > /dev/null
 APP="$PWD/dist/Spare.app/Contents/MacOS/Spare"
 
 FAKE_HOME="$(mktemp -d "${TMPDIR:-/tmp}/spare-snapshot.XXXXXX")"
-trap 'rm -rf "$FAKE_HOME"' EXIT
+# The fake Trash sits next to the fake home (never the real Trash).
+trap 'rm -rf "$FAKE_HOME" "$FAKE_HOME-trash"' EXIT
 
 # One real 256 MB file, then APFS clones: the scan sees gigabytes, the disk pays for 256 MB.
 BASE="$FAKE_HOME/.base-blob"
@@ -69,7 +70,8 @@ fi
 sips -Z 1200 "$OUT"/*.png > /dev/null
 
 status=0
-for name in 1-panel 2-overview-idle 3-overview-scanning 4-overview-done; do
+for name in 1-panel 2-overview-idle 3-overview-scanning 4-overview-done 5-cleanup-cards 6-cleanup-review \
+    7-cleanup-confirm 8-cleanup-progress 9-cleanup-result 10-history; do
     file="$OUT/$name.png"
     # A blank window renders as a tiny PNG; real screens are well above this.
     if [ ! -f "$file" ] || [ "$(stat -f %z "$file")" -lt 10000 ]; then

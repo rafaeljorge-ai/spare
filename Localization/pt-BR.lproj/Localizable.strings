@@ -87,3 +87,81 @@
 "Done" = "Concluído";
 "Disk space" = "Espaço em disco";
 "Low disk space" = "Pouco espaço em disco";
+
+/* Cleanup cards and review */
+"%@ safe and %@ to review" = "%@ seguros e %@ para revisar";
+"%@ categories with nothing to clean" = "%@ categorias sem nada para limpar";
+"%@ in use or not verified, left alone" = "%@ em uso ou não verificados, deixados em paz";
+"Safe items rebuild themselves or can be undone." = "Itens seguros se regeneram sozinhos ou podem ser desfeitos.";
+"Clean what's safe" = "Limpar o que é seguro";
+"Clean" = "Limpar";
+"No analysis yet" = "Nenhuma análise ainda";
+"Run an analysis to see what can be freed." = "Faça uma análise para ver o que pode ser liberado.";
+"Spare only touches what an analysis found." = "O Spare só mexe no que uma análise encontrou.";
+"All clean" = "Tudo limpo";
+"Nothing to clean right now." = "Nada para limpar agora.";
+"The last analysis found nothing to clean." = "A última análise não achou nada para limpar.";
+"Nothing left here" = "Nada sobrando aqui";
+"Everything in this category was cleaned." = "Tudo nesta categoria foi limpo.";
+"Back" = "Voltar";
+"Selected: %@ items, %@" = "Selecionados: %@ itens, %@";
+"Select all" = "Selecionar tudo";
+"Clear selection" = "Limpar seleção";
+"Clean selected" = "Limpar selecionados";
+"Show in Finder" = "Mostrar no Finder";
+
+/* Confirmation */
+"Clean %@ items (%@)?" = "Limpar %@ itens (%@)?";
+"Caches and leftovers that rebuild themselves are deleted for good to free space now." = "Caches e restos que se regeneram sozinhos são apagados de vez para liberar espaço agora.";
+"%@ items (%@) go to the Trash and can be undone." = "%@ itens (%@) vão para a Lixeira e podem ser desfeitos.";
+"Spare checks each item again right before touching it. Anything in use is skipped." = "O Spare confere cada item de novo antes de mexer. O que estiver em uso é pulado.";
+"Cancel" = "Cancelar";
+
+/* Progress and result */
+"Cleaning..." = "Limpando...";
+"Stopping..." = "Parando...";
+"Spare checks each item again right before touching it." = "O Spare confere cada item de novo antes de mexer.";
+"%@ of %@" = "%@ de %@";
+"Items go to the Trash or are deleted, as confirmed." = "Os itens vão para a Lixeira ou são apagados, como você confirmou.";
+"Cleanup complete" = "Limpeza concluída";
+"Cleanup stopped" = "Limpeza interrompida";
+"free" = "livres";
+"Cleaned %@ in %@ items" = "Liberado: %@ em %@ itens";
+"%@ skipped, %@ failed" = "%@ pulados, %@ com falha";
+"Could not save this cleanup to the history, so Undo is not available." = "Não foi possível salvar esta limpeza no histórico, então o Desfazer não está disponível.";
+"This cleanup is no longer in the history." = "Esta limpeza não está mais no histórico.";
+"Open the History to see past cleanups." = "Abra o Histórico para ver as limpezas passadas.";
+"View history" = "Ver histórico";
+"OK" = "OK";
+
+/* Trash actions */
+"%@ are in the Trash. The space comes back when they leave it." = "%@ estão na Lixeira. O espaço volta quando saírem de lá.";
+"Undo" = "Desfazer";
+"Free it now" = "Liberar agora";
+"Delete %@ for good?" = "Apagar %@ de vez?";
+"This cannot be undone. Only the items Spare moved are deleted; the rest of the Trash stays." = "Isso não pode ser desfeito. Só são apagados os itens que o Spare moveu; o resto da Lixeira fica.";
+"Restored %@ items." = "%@ itens restaurados.";
+"Restored %@ items. %@ stayed in the Trash: the original place is taken or the item changed." = "%@ itens restaurados. %@ ficaram na Lixeira: o lugar original está ocupado ou o item mudou.";
+"Freed %@ from %@ items." = "%@ liberados de %@ itens.";
+"Freed %@ from %@ items. %@ stayed in the Trash." = "%@ liberados de %@ itens. %@ ficaram na Lixeira.";
+"Could not read or write the history." = "Não foi possível ler ou gravar o histórico.";
+
+/* Entry notes */
+"Already gone" = "Já não existia";
+"Protected, not touched" = "Protegido, não foi tocado";
+"Stopped" = "Interrompido";
+"Tool not installed" = "Ferramenta não instalada";
+"Project used again, left alone" = "Projeto usado de novo, deixado em paz";
+"Failed: %@" = "Falhou: %@";
+"Restored" = "Restaurado";
+"Deleted from the Trash" = "Apagado da Lixeira";
+"In the Trash" = "Na Lixeira";
+
+/* History */
+"Everything Spare cleaned, with Undo while it is in the Trash" = "Tudo o que o Spare limpou, com Desfazer enquanto estiver na Lixeira";
+"Could not read the history" = "Não foi possível ler o histórico";
+"The file exists but could not be opened. Nothing was changed." = "O arquivo existe, mas não pôde ser aberto. Nada foi alterado.";
+"No cleanups yet" = "Nenhuma limpeza ainda";
+"When you clean something, it shows up here." = "Quando você limpar algo, aparece aqui.";
+"%@ items" = "%@ itens";
+"%@ items, %@ in the Trash" = "%@ itens, %@ na Lixeira";

@@ -33,6 +33,14 @@ Conventional Commits in English, imperative, subject up to 50 characters, no tra
 
 English literals are the localization keys. Every UI literal in `Sources/SpareApp` needs a `pt-BR` translation in `Localization/pt-BR.lproj/Localizable.strings`; `scripts/check-strings.py` enforces it. Interpolate only `String` values inside localized literals (format numbers and sizes first), so every placeholder is `%@`. Use `Text(verbatim:)` for text that must not be translated (paths, names). Inside a localized literal, keep interpolations simple: at most one level of nested parentheses and no string literals; compute the value into a local `let` first.
 
+## Developer options
+
+Read once at launch, for QA on a throwaway home (never set them for normal use):
+
+- `SPARE_HOME=<folder>` points the app and the CLI at a fake home. Without `SPARE_TRASH_DIR`, the app uses `<folder>/.Trash` as its Trash.
+- `SPARE_TRASH_DIR=<folder>` replaces the real Trash with a plain folder.
+- `--show <section>` opens the window on a section; `--snapshot <dir>` (needs `SPARE_HOME`) saves the key states as PNG (`scripts/snapshot.sh`).
+
 ## Adding a cleanup rule
 
 Add a `Rule` to `RuleCatalog.standard` plus a test with a fake home (`TempHome` and `SpareEnvironment.test(home:)`). Tests never touch the real home folder or the real Trash.
