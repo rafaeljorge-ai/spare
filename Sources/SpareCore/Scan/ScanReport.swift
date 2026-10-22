@@ -72,4 +72,12 @@ public struct ScanProgress: Sendable {
     public let item: ScanItem?
     /// Set when the last pending item of a category finished.
     public let finishedCategory: CategoryID?
+
+    public init(currentPath: String, completed: Int, total: Int, item: ScanItem?, finishedCategory: CategoryID?) {
+        self.currentPath = currentPath
+        self.completed = completed
+        self.total = total
+        self.item = item
+        self.finishedCategory = finishedCategory
+    }
 }

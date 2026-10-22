@@ -53,4 +53,12 @@ public struct SpareEnvironment: Sendable {
         return SpareEnvironment(home: resolved, projectRoots: ProjectScanner.defaultRoots(home: resolved),
                           processes: { try ProcessLister.live() })
     }
+
+    /// Real environment honoring the user's settings (project folders and idle days).
+    public static func live(home: URL, settings: SpareSettings) -> SpareEnvironment {
+        var environment = live(home: home)
+        environment.projectRoots = settings.projectRootPaths.map { URL(fileURLWithPath: $0, isDirectory: true) }
+        environment.projectIdleDays = settings.projectIdleDays
+        return environment
+    }
 }
