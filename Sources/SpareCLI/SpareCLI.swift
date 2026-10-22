@@ -22,7 +22,7 @@ public struct SpareCLI: Sendable {
         spare: keep your Mac's disk and memory in check
 
         USAGE:
-          spare status [--json]      Free disk space
+          spare status [--json]      Free disk space and memory
           spare scan [--json] [--category ID]   Preview what can be freed (changes nothing)
           spare rules                Rule IDs for clean
           spare clean --rule ID [--rule ID] [--yes] [--dry-run]   Clean the items of these rules
@@ -31,6 +31,9 @@ public struct SpareCLI: Sendable {
           spare purge [RECORD_ID] [--yes] [--dry-run]   Permanently delete Spare's own items from the Trash
                                      (only a preview without --yes; the rest of the Trash is never touched)
           spare history [--json]     Past cleanups
+          spare memory [--json]      Memory pressure and top consumers (approximate: shared memory is counted per process)
+          spare quit NAME [--yes] [--dry-run]   Ask one of your own apps or processes to quit (SIGTERM)
+                                     (only a preview without --yes; system processes and Spare itself are refused)
           spare help                 Show this help
         """
 
@@ -57,6 +60,10 @@ public struct SpareCLI: Sendable {
             return purge(Array(args.dropFirst()))
         case "history":
             return history(json: json)
+        case "memory":
+            return memory(json: json)
+        case "quit":
+            return quit(Array(args.dropFirst()))
         case "help", "--help", "-h":
             write(Self.usage)
             return 0
@@ -71,11 +78,81 @@ public struct SpareCLI: Sendable {
             writeError("Could not read disk space")
             return 1
         }
+        let memory = environment.memory()
         if json {
-            write(Self.encode(StatusOutput(disk: disk)))
+            write(Self.encode(StatusOutput(disk: disk, memory: memory)))
         } else {
             write("Free: \(ByteFormat.string(disk.freeBytes)) of \(ByteFormat.string(disk.totalBytes))")
+            if let memory { write(Self.memoryLine(memory)) }
         }
+        return 0
+    }
+
+    static func memoryLine(_ memory: MemorySnapshot) -> String {
+        "Memory (approx.): \(ByteFormat.string(memory.usedBytes)) of \(ByteFormat.string(memory.totalBytes)) used (pressure: \(memory.level.rawValue))"
+    }
+
+    // MARK: Memory
+
+    func listProcesses() -> [RunningProcess]? {
+        do {
+            return try environment.processes()
+        } catch {
+            writeError("Could not list running processes")
+            return nil
+        }
+    }
+
+    func memory(json: Bool) -> Int32 {
+        guard let processes = listProcesses() else { return 1 }
+        let snapshot = environment.memory()
+        let consumers = MemoryMonitor.topConsumers(
+            processes: processes, currentUID: getuid(), ownPID: ProcessInfo.processInfo.processIdentifier)
+        if json {
+            write(Self.encode(MemoryOutput(snapshot: snapshot, consumers: consumers)))
+            return 0
+        }
+        if let snapshot { write(Self.memoryLine(snapshot)) }
+        write("Top consumers (approximate: shared memory is counted in every process that uses it):")
+        for consumer in consumers {
+            write("  ~\(ByteFormat.string(consumer.bytes))  \(consumer.name)  pids: \(consumer.pids.map(String.init).joined(separator: ","))")
+        }
+        return 0
+    }
+
+    /// Quits only with `--yes`, and never with `--dry-run`. SIGTERM only, own processes only.
+    func quit(_ args: [String]) -> Int32 {
+        guard let query = args.first(where: { !$0.hasPrefix("--") }) else {
+            writeError("Pass the name of an app or process (see: spare memory)")
+            return 64
+        }
+        guard let processes = listProcesses() else { return 1 }
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        let consumers = MemoryMonitor.topConsumers(
+            processes: processes, currentUID: getuid(), ownPID: ownPID, limit: .max)
+        let matches = consumers.filter { $0.id == query || $0.name.caseInsensitiveCompare(query) == .orderedSame }
+        guard !matches.isEmpty else {
+            writeError("No process of yours named \(query). Only your own apps and tools can be quit (see: spare memory)")
+            return 64
+        }
+        guard matches.count == 1, let consumer = matches.first else {
+            writeError("More than one match for \(query). Use one of these ids instead:")
+            matches.forEach { writeError("  \($0.id)") }
+            return 64
+        }
+        guard args.contains("--yes"), !args.contains("--dry-run") else {
+            write("Would ask \(consumer.name) (\(consumer.pids.count) process(es), ~\(ByteFormat.string(consumer.bytes))) to quit.")
+            write(args.contains("--dry-run") ? "Dry run: nothing was changed." : "Run again with --yes to quit it.")
+            return 0
+        }
+        let count = ProcessTerminator.terminate(
+            consumer, processes: processes, currentUID: getuid(), ownPID: ownPID,
+            currentPath: environment.executablePath, send: environment.sendSignal)
+        guard count > 0 else {
+            writeError("Could not ask \(consumer.name) to quit")
+            return 1
+        }
+        write("Asked \(consumer.name) to quit (\(count) process(es)). It may take a moment to close.")
         return 0
     }
 
@@ -308,4 +385,10 @@ public struct SpareCLI: Sendable {
 
 struct StatusOutput: Codable {
     let disk: DiskSpace
+    let memory: MemorySnapshot?
+}
+
+struct MemoryOutput: Codable {
+    let snapshot: MemorySnapshot?
+    let consumers: [MemoryConsumer]
 }

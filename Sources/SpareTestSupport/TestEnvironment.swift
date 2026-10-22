@@ -9,6 +9,9 @@ extension SpareEnvironment {
         projectRoots: [URL] = [],
         disk: DiskSpace? = DiskSpace(freeBytes: 10_000_000_000, totalBytes: 100_000_000_000),
         processes: [RunningProcess] = [],
+        memory: MemorySnapshot? = MemorySnapshot(
+            totalBytes: 16_000_000_000, usedBytes: 8_000_000_000, compressedBytes: 1_000_000_000, level: .normal),
+        signals: SignalRecorder = SignalRecorder(),
         commandRunner: any CommandRunning = RecordingCommandRunner(),
         processListingFails: Bool = false,
         now: @escaping @Sendable () -> Date = { Date() }
@@ -24,6 +27,9 @@ extension SpareEnvironment {
                 if processListingFails { throw ProcessListingError(message: "test") }
                 return processes
             },
+            memory: { memory },
+            executablePath: { pid in processes.first { $0.pid == pid }?.executablePath },
+            sendSignal: { signals.send($0, $1) },
             trash: FolderTrash(folder: trashFolder),
             commandRunner: commandRunner
         )

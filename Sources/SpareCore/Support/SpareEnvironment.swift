@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 /// Everything the engine needs from the outside world. Tests replace each piece.
@@ -9,6 +10,12 @@ public struct SpareEnvironment: Sendable {
     public var diskSpace: @Sendable (URL) -> DiskSpace?
     /// Throws when the running processes could not be listed.
     public var processes: @Sendable () throws -> [RunningProcess]
+    /// Memory totals and pressure; nil when they cannot be read.
+    public var memory: @Sendable () -> MemorySnapshot?
+    /// Real executable path of a pid, nil when it is gone (used to re-check a process right before signaling it).
+    public var executablePath: @Sendable (Int32) -> String?
+    /// `kill(2)`: tests inject a recorder so no real process is ever signaled.
+    public var sendSignal: @Sendable (Int32, Int32) -> Int32
     /// Where `trash` actions send items (tests inject a plain folder, never the real Trash).
     public var trash: any TrashService
     public var commandRunner: any CommandRunning
@@ -20,6 +27,9 @@ public struct SpareEnvironment: Sendable {
         now: @escaping @Sendable () -> Date = { Date() },
         diskSpace: @escaping @Sendable (URL) -> DiskSpace? = { DiskMonitor.space(at: $0) },
         processes: @escaping @Sendable () throws -> [RunningProcess] = { [] },
+        memory: @escaping @Sendable () -> MemorySnapshot? = { MemoryMonitor.snapshot() },
+        executablePath: @escaping @Sendable (Int32) -> String? = { ProcessLister.executablePath(ofPid: $0) },
+        sendSignal: @escaping @Sendable (Int32, Int32) -> Int32 = { kill($0, $1) },
         trash: any TrashService = SystemTrash(),
         commandRunner: (any CommandRunning)? = nil
     ) {
@@ -29,6 +39,9 @@ public struct SpareEnvironment: Sendable {
         self.now = now
         self.diskSpace = diskSpace
         self.processes = processes
+        self.memory = memory
+        self.executablePath = executablePath
+        self.sendSignal = sendSignal
         self.trash = trash
         self.commandRunner = commandRunner ?? SystemCommandRunner(home: home)
     }

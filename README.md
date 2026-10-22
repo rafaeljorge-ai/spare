@@ -48,7 +48,7 @@ scripts/build-app.sh   # builds dist/Spare.app
 ## CLI usage
 
 ```
-spare status [--json]      Free disk space
+spare status [--json]      Free disk space and memory
 spare scan [--json] [--category ID]   Preview what can be freed (changes nothing)
 spare rules                List rule IDs
 spare clean --rule ID [--rule ID] [--yes] [--dry-run] [--json]
@@ -61,6 +61,11 @@ spare purge [RECORD_ID] [--yes] [--dry-run]
                            Permanently delete the items Spare itself moved to the Trash (the rest of
                            the Trash is never touched). Without --yes it only previews.
 spare history [--json]     Past cleanups
+spare memory [--json]      Memory pressure and top consumers (approximate: built from public APIs,
+                           shared memory is counted in every process that uses it)
+spare quit NAME [--yes] [--dry-run]
+                           Ask one of your own apps or tools to quit (SIGTERM). Without --yes it only
+                           previews; system processes and Spare itself are refused.
 spare help                 Show this help
 ```
 
@@ -145,6 +150,11 @@ spare purge [ID_DA_LIMPEZA] [--yes] [--dry-run]
                            Apaga para sempre só os itens que o próprio Spare mandou para a Lixeira
                            (o resto da Lixeira nunca é tocado). Sem --yes só mostra o que faria.
 spare history [--json]     Limpezas anteriores
+spare memory [--json]      Pressão de memória e maiores consumidores (aproximado: APIs públicas,
+                           memória compartilhada é contada em cada processo que a usa)
+spare quit NOME [--yes] [--dry-run]
+                           Pede a um app ou ferramenta seu que feche (SIGTERM). Sem --yes só mostra;
+                           processos do sistema e o próprio Spare são recusados.
 spare help                 Mostra a ajuda
 ```
 
