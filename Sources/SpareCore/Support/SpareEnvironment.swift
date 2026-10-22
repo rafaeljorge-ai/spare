@@ -1,0 +1,29 @@
+import Foundation
+
+/// Everything the engine needs from the outside world. Tests replace each piece.
+public struct SpareEnvironment: Sendable {
+    public var home: URL
+    public var projectRoots: [URL]
+    public var projectIdleDays: Int
+    public var now: @Sendable () -> Date
+    public var diskSpace: @Sendable (URL) -> DiskSpace?
+
+    public init(
+        home: URL,
+        projectRoots: [URL] = [],
+        projectIdleDays: Int = 30,
+        now: @escaping @Sendable () -> Date = { Date() },
+        diskSpace: @escaping @Sendable (URL) -> DiskSpace? = { DiskMonitor.space(at: $0) }
+    ) {
+        self.home = home
+        self.projectRoots = projectRoots
+        self.projectIdleDays = projectIdleDays
+        self.now = now
+        self.diskSpace = diskSpace
+    }
+
+    /// Real environment for the CLI and the app.
+    public static func live(home: URL) -> SpareEnvironment {
+        SpareEnvironment(home: home.resolvingSymlinksInPath())
+    }
+}

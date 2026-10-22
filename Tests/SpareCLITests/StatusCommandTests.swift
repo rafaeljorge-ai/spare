@@ -1,0 +1,46 @@
+import Foundation
+import Testing
+@testable import SpareCLI
+import SpareCore
+import SpareTestSupport
+
+@Suite struct StatusCommandTests {
+    @Test func statusJSONReportsDiskSpace() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let output = OutputCapture()
+        let cli = SpareCLI(environment: .test(home: home.url), write: output.write)
+
+        let code = await cli.run(["status", "--json"])
+
+        #expect(code == 0)
+        struct Status: Decodable { let disk: DiskSpace }
+        let status = try JSONDecoder().decode(Status.self, from: Data(output.text.utf8))
+        #expect(status.disk.freeBytes == 10_000_000_000)
+        #expect(status.disk.totalBytes == 100_000_000_000)
+    }
+
+    @Test func statusTextIsHumanReadable() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let output = OutputCapture()
+        let cli = SpareCLI(environment: .test(home: home.url), write: output.write)
+
+        let code = await cli.run(["status"])
+
+        #expect(code == 0)
+        #expect(output.text.contains("Free:"))
+    }
+
+    @Test func unknownCommandFailsWithUsage() async throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let output = OutputCapture()
+        let cli = SpareCLI(environment: .test(home: home.url), write: output.write)
+
+        let code = await cli.run(["explode"])
+
+        #expect(code == 64)
+        #expect(output.text.contains("USAGE"))
+    }
+}
