@@ -41,8 +41,14 @@ public struct TempHome: Sendable {
         FileManager.default.fileExists(atPath: path(relativePath).path)
     }
 
+    /// Fake Trash used by `SpareEnvironment.test`, next to the home so it never touches the real one.
+    public var trashFolder: URL {
+        url.deletingLastPathComponent().appendingPathComponent(url.lastPathComponent + "-trash", isDirectory: true)
+    }
+
     public func remove() {
         try? FileManager.default.removeItem(at: url)
+        try? FileManager.default.removeItem(at: trashFolder)
     }
 }
 

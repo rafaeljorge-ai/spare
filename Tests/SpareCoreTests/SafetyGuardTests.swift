@@ -193,4 +193,31 @@ import SpareTestSupport
 
         #expect(guardian.violation(for: item, rule: rule("apps.caches")) == .outsideCatalog)
     }
+
+    @Test func userFilesInsideMailMessagesAndICloudAreRefused() throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        let guardian = SafetyGuard(home: home.url, projectRoots: [])
+
+        for path in ["Library/Mail/V10/INBOX.mbox/x.emlx", "Library/Messages/chat.db",
+                     "Library/Mobile Documents/com~apple~CloudDocs/report.pdf"] {
+            #expect(!guardian.canTrashUserFile(try home.file(path)), "\(path)")
+        }
+        #expect(guardian.canTrashUserFile(try home.file("Downloads/big.mov")))
+    }
+
+    @Test func environmentConstructorSharesTheCatalogAndTheClock() throws {
+        let home = try TempHome()
+        defer { home.remove() }
+        // 20 days old against a 30 day rule: refused today, accepted by a clock 20 days ahead.
+        let installer = try home.file("Downloads/mid.dmg", modified: daysAgo(20))
+        let later = Date().addingTimeInterval(20 * 86_400)
+        let rule = rule("downloads.installers")
+
+        let today = SafetyGuard(environment: .test(home: home.url))
+        let ahead = SafetyGuard(environment: .test(home: home.url, now: { later }))
+
+        #expect(today.violation(for: installer, rule: rule) == .outsideCatalog)
+        #expect(ahead.violation(for: installer, rule: rule) == nil)
+    }
 }

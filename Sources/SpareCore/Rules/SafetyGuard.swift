@@ -12,6 +12,8 @@ public struct SafetyGuard: Sendable {
         ".ssh", ".gnupg", ".aws", ".kube", "Documents", "Desktop", "Pictures", "Movies", "Music",
         "Library", "Library/Keychains", "Library/Mobile Documents", "Library/Mail", "Library/Messages",
     ]
+    /// Mail, messages and iCloud Drive: never moved to the Trash from the Large Files screen.
+    static let neverTrashInHome = ["Library/Mail", "Library/Messages", "Library/Mobile Documents"]
     static let criticalInHome = [".ssh", ".gnupg", ".aws", ".kube", "Library/Keychains"]
 
     public init(home: URL, projectRoots: [URL], catalog: RuleCatalog = .standard,
@@ -20,6 +22,11 @@ public struct SafetyGuard: Sendable {
         self.now = now
         self.home = home.resolvingSymlinksInPath().standardizedFileURL
         self.projectRoots = projectRoots.map { $0.resolvingSymlinksInPath().standardizedFileURL }
+    }
+
+    /// Same home, project roots and clock as the scan, so both judge a path identically.
+    public init(environment: SpareEnvironment, catalog: RuleCatalog = .standard) {
+        self.init(home: environment.home, projectRoots: environment.projectRoots, catalog: catalog, now: environment.now)
     }
 
     public func violation(for url: URL, rule: Rule) -> SkipReason? {
@@ -72,7 +79,7 @@ public struct SafetyGuard: Sendable {
         let path = Self.resolved(url)
         guard !Self.isSystemPath(path), path.hasPrefix(home.path + "/") else { return false }
         let relative = String(path.dropFirst(home.path.count + 1))
-        if Self.isInside(relative, any: Self.criticalInHome) { return false }
+        if Self.isInside(relative, any: Self.criticalInHome + Self.neverTrashInHome) { return false }
         // Refuse the protected/critical folders themselves and any folder that contains one.
         let sensitive = Self.criticalInHome + Self.protectedInHome
         return !sensitive.contains { $0 == relative || $0.hasPrefix(relative + "/") }
